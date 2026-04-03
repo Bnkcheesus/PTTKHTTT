@@ -141,6 +141,7 @@ CREATE TABLE HOPDONG (
     NgayKy DATE,
     NgayBatDau DATE,
     NgayKetThuc DATE,
+	NoiDungHD NVARCHAR(500),
     MaPhieuDatCoc VARCHAR(50),
     MaNV VARCHAR(50),
     FOREIGN KEY (MaPhieuDatCoc) REFERENCES PHIEUDATCOC(MaPhieuDatCoc),
