@@ -120,7 +120,7 @@ CREATE TABLE PHIEUDATCOC (
     MaPhieuDatCoc VARCHAR(50) PRIMARY KEY,
     NgayLap DATE,
     LoaiDatCoc NVARCHAR(100),
-    TrangThai NVARCHAR(50), --Da thanh toan, Chua thanh toan
+    TrangThai NVARCHAR(50), --Da thanh toan, Chua thanh toan, ...
     TienCoc DECIMAL(18, 2),
     MaKH VARCHAR(50),
     MaNV VARCHAR(50),
