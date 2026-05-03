@@ -52,54 +52,63 @@ CREATE OR ALTER PROCEDURE LapHopDong
     @MaPhieu VARCHAR(50),
     @NgayBatDau DATE,
     @NgayKetThuc DATE,
-    @NoiDungHD NVARCHAR(500)
+    @NoiDungHD NVARCHAR(500),
+    @MaNV VARCHAR(50) = NULL -- Defaulted to NULL
 AS
 BEGIN
     DECLARE @MaHD VARCHAR(50);
-	DECLARE @NgayKy Date;
+    DECLARE @NgayKy DATE;
     DECLARE @NextNum INT;
 
-    -- 1. Find the highest current number in the MaHopDong column
-    -- SUBSTRING starts from the 3rd character (after 'HD')
+    -- 1. Find the highest current number for ID generation
     SELECT @NextNum = ISNULL(MAX(CAST(SUBSTRING(MaHopDong, 3, 10) AS INT)), 0) + 1
     FROM HOPDONG;
 
-    -- 2. Format the new ID (HD + leading zeros + the next number)
-    -- This ensures a format like HD001, HD010, etc.
+    -- 2. Format the new ID (HD001, HD002...)
     SET @MaHD = 'HD' + RIGHT('000' + CAST(@NextNum AS VARCHAR(10)), 3);
+    SET @NgayKy = CAST(GETDATE() AS DATE);
 
-	SET @NgayKy = CAST(GETDATE() AS DATE);
+    -- 3. Insert the new record including @MaNV
+    INSERT INTO HOPDONG (MaHopDong, NgayKy, NgayBatDau, NgayKetThuc, NoiDungHD, MaPhieuDatCoc, MaNV)
+    VALUES (@MaHD, @NgayKy, @NgayBatDau, @NgayKetThuc, @NoiDungHD, @MaPhieu, @MaNV);
+END;
 
-    -- 3. Insert the new record
-    INSERT INTO HOPDONG (MaHopDong, NgayKy, NgayBatDau, NgayKetThuc, NoiDungHD, MaPhieuDatCoc)
-    VALUES (@MaHD, @NgayKy, @NgayBatDau, @NgayKetThuc, @NoiDungHD, @MaPhieu);
+GO
+CREATE OR ALTER PROCEDURE LayDSHopDong
+AS
+BEGIN
+	SELECT MaHopDong, NgayKy, HoTen
+	FROM HOPDONG
+	JOIN PHIEUDATCOC ON HOPDONG.MaPhieuDatCoc = PHIEUDATCOC.MaPhieuDatCoc
+	JOIN KHACHHANG ON PHIEUDATCOC.MaKH = KHACHHANG.MaKH
 END;
 
 GO
 CREATE OR ALTER PROCEDURE LapBienBan
-    @MaHD VARCHAR(50)
+    @MaHD VARCHAR(50),
+    @MaNV VARCHAR(50) = NULL -- Defaulted to NULL
 AS
 BEGIN
     DECLARE @MaBB VARCHAR(50);
     DECLARE @NgayLap DATE;
     DECLARE @NextNum INT;
-	DECLARE @validateBB VARCHAR(50)
-	SET @validateBB = (SELECT MaBienBan FROM BIENBAN WHERE MaHopDong = @MaHD)
-	IF (@validateBB IS NOT NULL)
-		RETURN;
-    -- 1. Generate the ID based on the current maximum in the table
+    DECLARE @validateBB VARCHAR(50);
+
+    -- Check if a record already exists for this contract
+    SET @validateBB = (SELECT MaBienBan FROM BIENBAN WHERE MaHopDong = @MaHD);
+    IF (@validateBB IS NOT NULL)
+        RETURN;
+
+    -- 1. Generate the ID (BB001, BB002...)
     SELECT @NextNum = ISNULL(MAX(CAST(SUBSTRING(MaBienBan, 3, 10) AS INT)), 0) + 1
     FROM BIENBAN;
 
-    -- 2. Format the ID (e.g., BB001)
     SET @MaBB = 'BB' + RIGHT('000' + CAST(@NextNum AS VARCHAR(10)), 3);
-
-    -- 3. Get the current computer/server date
     SET @NgayLap = CAST(GETDATE() AS DATE);
 
-    -- 4. Insert the new record (leaving MaNV as NULL)
-    INSERT INTO BIENBAN (MaBienBan, NgayLap, MaHopDong)
-    VALUES (@MaBB, @NgayLap, @MaHD);
+    -- 2. Insert the new record including @MaNV
+    INSERT INTO BIENBAN (MaBienBan, NgayLap, MaHopDong, MaNV)
+    VALUES (@MaBB, @NgayLap, @MaHD, @MaNV);
 END;
 
 GO
