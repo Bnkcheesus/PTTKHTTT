@@ -3,13 +3,16 @@ GO
 CREATE OR ALTER PROCEDURE sp_GetAllDepositPaid
 AS
 BEGIN
-	SELECT MaPhieuDatCoc, HoTen, NgayLap, MaNhom
-	FROM PHIEUDATCOC
-	JOIN KHACHHANG ON KHACHHANG.MaKH = PHIEUDATCOC.MaKH
-	LEFT JOIN CHITIET_NHOMTHUE ON CHITIET_NHOMTHUE.MAKH = KHACHHANG.MaKH
-	WHERE TrangThai = N'Đã thanh toán' AND NOT EXISTS (
-		SELECT MaPhieuDatCoc FROM HOPDONG
-	)
+    SELECT 
+        P.MaPhieuDatCoc, 
+        K.HoTen, 
+        P.NgayLap, 
+        CN.MaNhom
+    FROM PHIEUDATCOC P
+    JOIN KHACHHANG K ON K.MaKH = P.MaKH
+    LEFT JOIN CHITIET_NHOMTHUE CN ON CN.MaKH = K.MaKH
+    WHERE P.TrangThai = N'Đã thanh toán' AND 
+	P.MaPhieuDatCoc NOT IN (SELECT MaPhieuDatCoc FROM HOPDONG WHERE MaPhieuDatCoc IS NOT NULL)
 END
 GO
 EXEC sp_GetAllDepositPaid;
@@ -174,3 +177,8 @@ BEGIN
 	
 	DELETE FROM BIENBAN_THIETBI WHERE MaBienBan = @MaBB  AND MaThietBi = @MaTB;	
 END;
+
+
+-- INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc, MaKH, MaNV) VALUES ('PDC1000', '2025-02-12', N'Cọc giữ chỗ', N'Đã thanh toán', 3500000, 'KH099', 'NV005');
+-- SELECT * FROM PHIEUDATCOC WHERE MaPhieuDatCoc = 'PDC1000'
+-- Exec LayDSThietBi
