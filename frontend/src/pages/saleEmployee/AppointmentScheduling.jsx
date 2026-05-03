@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PendingCustomerTable from '../../components/PendingCustomerTable';
 import AppointmentModal from '../../components/AppointmentModal';
+import SaleNavbar from '../../components/SaleNavbar';
 
 const AppointmentScheduling = () => {
     const [danhSachKhach, setDanhSachKhach] = useState([]);
@@ -26,8 +27,11 @@ const AppointmentScheduling = () => {
 
     const LayDanhSachKhachChuaHen = async () => {
         try {
-            // Thay domain API cho đúng với máy bác
             const response = await axios.get('http://localhost:5000/api/appointments/pending');
+            
+            // THÊM DÒNG NÀY VÀO ĐỂ XEM BACKEND THỰC SỰ TRẢ VỀ CÁI GÌ
+            console.log("Dữ liệu Backend trả về:", response.data); 
+            
             setDanhSachKhach(response.data);
         } catch (error) {
             console.error("Lỗi lấy danh sách chờ hẹn:", error);
@@ -85,40 +89,48 @@ const AppointmentScheduling = () => {
     };
 
     return (
-        <div className="p-8 max-w-6xl mx-auto relative">
+        // Thẻ div bọc ngoài cùng chiếm toàn bộ màn hình
+        <div className="bg-[#1A1A1A] min-h-screen pb-10"> 
             
-            {/* Pop-up thông báo đè lên giữa màn hình */}
-            {thongBao.hienThi && (
-                <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-8 py-4 z-50 text-white font-bold shadow-2xl text-lg text-center
-                    ${thongBao.loai === 'success' ? 'bg-[#2A754B]' : 'bg-red-600'}`}>
-                    {thongBao.noiDung}
+            {/* Chèn thanh điều hướng vào đây (nằm sát trên cùng) */}
+            <SaleNavbar />
+
+            {/* Thẻ div chứa nội dung chính của bác */}
+            <div className="p-8 max-w-6xl mx-auto relative mt-8 bg-white rounded-md shadow-lg">
+                
+                {/* Pop-up thông báo (Dùng fixed để luôn ở giữa màn hình kể cả khi cuộn) */}
+                {thongBao.hienThi && (
+                    <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-8 py-4 z-[9999] text-white font-bold shadow-2xl text-lg text-center rounded
+                        ${thongBao.loai === 'success' ? 'bg-[#2A754B]' : 'bg-red-600'}`}>
+                        {thongBao.noiDung}
+                    </div>
+                )}
+
+                <h2 className="text-2xl font-bold text-center text-gray-800">Danh sách các khách có thể hẹn lịch</h2>
+                <p className="text-center text-gray-500 italic text-sm mb-4">(Chọn một khách hàng để hẹn lịch)</p>
+
+                <PendingCustomerTable 
+                    danhSachKhach={danhSachKhach} 
+                    khachDangChon={khachDangChon} 
+                    chonKhach={(khach) => setKhachDangChon(khach)} 
+                />
+
+                <div className="mt-6 flex justify-end">
+                    <button 
+                        onClick={KiemTraVaMoHenLich} 
+                        className="bg-[#2A754B] text-white px-8 py-2 font-bold rounded hover:bg-green-800 transition-colors shadow-md"
+                    >
+                        Thêm lịch hẹn mới
+                    </button>
                 </div>
-            )}
 
-            <h2 className="text-2xl font-bold text-center text-gray-800">Danh sách các khách có thể hẹn lịch</h2>
-            <p className="text-center text-gray-500 italic text-sm mb-4">(Chọn một khách hàng để hẹn lịch)</p>
-
-            <PendingCustomerTable 
-                danhSachKhach={danhSachKhach} 
-                khachDangChon={khachDangChon} 
-                chonKhach={(khach) => setKhachDangChon(khach)} 
-            />
-
-            <div className="mt-6 flex justify-end">
-                <button 
-                    onClick={KiemTraVaMoHenLich} 
-                    className="bg-[#2A754B] text-white px-8 py-2 font-bold hover:bg-green-800 transition-colors shadow-md"
-                >
-                    Thêm lịch hẹn mới
-                </button>
+                <AppointmentModal 
+                    moHopThoai={moHopThoai} 
+                    khachDangChon={khachDangChon}
+                    dongHopThoai={() => setMoHopThoai(false)}
+                    xacNhanHenLich={GoiApiTaoLichHen}
+                />
             </div>
-
-            <AppointmentModal 
-                moHopThoai={moHopThoai} 
-                khachDangChon={khachDangChon}
-                dongHopThoai={() => setMoHopThoai(false)}
-                xacNhanHenLich={GoiApiTaoLichHen}
-            />
         </div>
     );
 };

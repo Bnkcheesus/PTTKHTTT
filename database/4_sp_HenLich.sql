@@ -9,7 +9,11 @@ BEGIN
         PYC.MaPhieuYC, 
         KH.MaKH, 
         KH.HoTen, 
+        KH.GioiTinh,
         KH.SDT, 
+        KH.Email,
+        KH.CCCD,
+        PYC.MaPhong,
         PYC.SoNguoiDuKien, 
         PYC.ThoiGianDuKien, 
         PYC.HinhThucThue

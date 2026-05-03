@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import RoomTable from '../../components/RoomTable';
 import RegistrationModal from '../../components/RegistrationModal';
+import SaleNavbar from '../../components/SaleNavbar';
 
 const RoomRegistration = () => {
     const [danhSachPhong, setDanhSachPhong] = useState([]);
@@ -95,39 +96,49 @@ const RoomRegistration = () => {
     };
 
     return (
-        <div className="p-8 max-w-6xl mx-auto relative">
-            {thongBao.hienThi && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-8 py-4 z-50 text-white font-bold shadow-2xl text-lg text-center bg-[#2A754B]">
-                    {thongBao.noiDung.split('!').map((text, i) => (
-                        <div key={i}>{text}{i === 0 ? '!' : ''}</div>
-                    ))}
+        // Thẻ div bọc ngoài cùng chiếm toàn bộ màn hình
+        <div className="bg-[#1A1A1A] min-h-screen pb-10"> 
+            
+            {/* Chèn thanh điều hướng vào đây (nằm sát trên cùng) */}
+            <SaleNavbar />
+
+            {/* Thẻ div chứa nội dung chính */}
+            <div className="p-8 max-w-6xl mx-auto relative mt-8 bg-white rounded-md shadow-lg">
+                
+                {/* Pop-up thông báo (Dùng fixed và z-[9999] để luôn nằm giữa màn hình nổi lên trên cùng) */}
+                {thongBao.hienThi && (
+                    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-8 py-4 z-[9999] text-white font-bold shadow-2xl text-lg text-center bg-[#2A754B] rounded">
+                        {thongBao.noiDung.split('!').map((text, i) => (
+                            <div key={i}>{text}{i === 0 ? '!' : ''}</div>
+                        ))}
+                    </div>
+                )}
+
+                <h2 className="text-2xl font-bold text-center text-gray-800">Danh sách các phòng khách có thể thuê</h2>
+                <p className="text-center text-gray-500 italic text-sm mb-4">(Chọn một phòng để thuê cho khách)</p>
+
+                <RoomTable 
+                    danhSachPhong={danhSachPhong} 
+                    phongDangChon={phongDangChon} 
+                    chonPhong={(phong) => setPhongDangChon(phong)} 
+                />
+
+                <div className="mt-6 flex justify-end">
+                    <button 
+                        onClick={KiemTraVaMoDangKy} 
+                        className="bg-[#2A754B] text-white px-8 py-2 font-bold rounded hover:bg-green-800 transition-colors shadow-md"
+                    >
+                        Đăng ký
+                    </button>
                 </div>
-            )}
 
-            <h2 className="text-2xl font-bold text-center text-gray-800">Danh sách các phòng khách có thể thuê</h2>
-            <p className="text-center text-gray-500 italic text-sm mb-4">(Chọn một phòng để thuê cho khách)</p>
-
-            <RoomTable 
-                danhSachPhong={danhSachPhong} 
-                phongDangChon={phongDangChon} 
-                chonPhong={(phong) => setPhongDangChon(phong)} 
-            />
-
-            <div className="mt-6 flex justify-end">
-                <button 
-                    onClick={KiemTraVaMoDangKy} 
-                    className="bg-[#2A754B] text-white px-8 py-2 font-bold hover:bg-green-800 transition-colors shadow-md"
-                >
-                    Đăng ký
-                </button>
+                <RegistrationModal 
+                    moHopThoai={moHopThoai} 
+                    phongDangChon={phongDangChon}
+                    dongHopThoai={() => setMoHopThoai(false)}
+                    xacNhanDangKy={GoiApiDangKy}
+                />
             </div>
-
-            <RegistrationModal 
-                moHopThoai={moHopThoai} 
-                phongDangChon={phongDangChon}
-                dongHopThoai={() => setMoHopThoai(false)}
-                xacNhanDangKy={GoiApiDangKy}
-            />
         </div>
     );
 };
