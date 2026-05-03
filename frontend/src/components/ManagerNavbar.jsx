@@ -14,20 +14,23 @@ export default function ManagerNavbar() {
     ];
 
     return (
-        <nav className="bg-green-700 text-white">
+        <nav style={{ backgroundColor: '#237850' }} className="text-white shadow-md">
             <div className="flex items-center">
-                {navItems.map((item, index) => (
-                    <Link
-                        key={index}
-                        to={item.path}
-                        className={`px-6 py-3 font-medium transition ${location.pathname === item.path
-                                ? 'bg-green-800 border-b-4 border-white'
-                                : 'hover:bg-green-600'
-                            }`}
-                    >
-                        {item.label}
-                    </Link>
-                ))}
+                {navItems.map((item, index) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                        <Link
+                            key={index}
+                            to={item.path}
+                            className={`px-6 py-4 font-medium transition-colors text-sm ${isActive
+                                ? 'bg-[#1a5a3c] shadow-inner' // Darker green for active
+                                : 'hover:bg-[#2d8a5d]'
+                                }`}
+                        >
+                            {item.label}
+                        </Link>
+                    );
+                })}
             </div>
         </nav>
     );
