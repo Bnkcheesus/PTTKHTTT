@@ -181,3 +181,4 @@ END;
 
 -- INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc, MaKH, MaNV) VALUES ('PDC1000', '2025-02-12', N'Cọc giữ chỗ', N'Đã thanh toán', 3500000, 'KH099', 'NV005');
 -- SELECT * FROM PHIEUDATCOC WHERE MaPhieuDatCoc = 'PDC1000'
+-- Exec LayDSThietBi
