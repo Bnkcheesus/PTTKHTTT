@@ -14,6 +14,7 @@ app.use('/api/rooms', require('./routes/roomRoutes'));
 app.use('/api/hopdong', require('./routes/hopDongRoutes'));
 app.use('/api/customers', require('./routes/customerRoutes'));
 app.use('/api/deposits', require('./routes/depositRoutes'));
+app.use('/api/appointments', require('./routes/appointmentRoutes'));
 app.get('/', (req, res) => {
     res.send('API is working');
 });
