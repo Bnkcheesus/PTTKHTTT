@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ManagerNavbar from '../../components/ManagerNavbar';
 import bienBanService from '../../services/bienBanService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function BienBan() {
+    const { user } = useAuth();
     const [contracts, setContracts] = useState([]);
     const [equipments, setEquipments] = useState([]);
     const [selectedHD, setSelectedHD] = useState(null);
@@ -26,7 +28,7 @@ export default function BienBan() {
 
     const handleSelectHD = async (id) => {
         setSelectedHD(id);
-        await bienBanService.initBienBan(id); // Tạo biên bản nếu chưa có
+        await bienBanService.initBienBan(id, user?.MaNV); // Pass employee MaNV
         const detailData = await bienBanService.getDetails(id);
         setDetails(detailData);
     };
@@ -34,9 +36,11 @@ export default function BienBan() {
     const handleAddItem = async () => {
         if (!selectedHD || !selectedTB) return alert("Vui lòng chọn Hợp đồng và Thiết bị!");
         try {
-            await bienBanService.addItem(selectedHD, selectedTB, qty);
+            await bienBanService.addItem(selectedHD, selectedTB, parseInt(qty));
             const detailData = await bienBanService.getDetails(selectedHD);
             setDetails(detailData);
+            setSelectedTB(null);
+            setQty(1);
         } catch (err) { alert("Lỗi: Thiết bị có thể đã tồn tại trong biên bản."); }
     };
 
@@ -44,6 +48,34 @@ export default function BienBan() {
         await bienBanService.removeItem(selectedHD, maTB);
         const detailData = await bienBanService.getDetails(selectedHD);
         setDetails(detailData);
+    };
+
+    const handleConfirm = async () => {
+        if (!selectedHD || details.length === 0) {
+            return alert("Vui lòng thêm ít nhất một thiết bị vào biên bản!");
+        }
+        alert("Biên bản đã được lưu thành công!");
+        resetUI();
+    };
+
+    const handleCancel = async () => {
+        if (!selectedHD) return;
+        try {
+            console.log('Canceling bien ban for:', selectedHD);
+            await bienBanService.deleteBienBan(selectedHD);
+            alert("Biên bản đã được hủy!");
+            resetUI();
+        } catch (err) {
+            console.error('Error deleting bien ban:', err);
+            alert("Lỗi khi hủy biên bản: " + (err.message || 'Unknown error'));
+        }
+    };
+
+    const resetUI = () => {
+        setSelectedHD(null);
+        setSelectedTB(null);
+        setDetails([]);
+        setQty(1);
     };
 
     return (
@@ -86,10 +118,10 @@ export default function BienBan() {
                         <h2 className="font-bold mb-4 text-right">Thêm nội dung biên bản</h2>
                         <div className="p-4 rounded shadow-sm" style={{ backgroundColor: '#d9ead3' }}>
                             <div className="flex gap-2 mb-2">
-                                <input placeholder="Tên thiết bị" className="flex-1 p-2 border border-gray-400 outline-none text-xs" />
+                                <input placeholder="Tên thiết bị" className="flex-1 p-2 border border-gray-400 bg-white outline-none text-xs" />
                                 <button className="bg-[#3c3836] text-white px-4 text-xs font-bold rounded">Tìm</button>
                             </div>
-                            <div className="bg-white border border-gray-400 max-h-[150px] overflow-y-auto mb-4">
+                            <div style={{ backgroundColor: 'white' }} className="border border-gray-400 max-h-[150px] overflow-y-auto mb-4">
                                 <table className="w-full text-xs">
                                     <tbody>
                                         {equipments.map(e => (
@@ -104,7 +136,7 @@ export default function BienBan() {
                                 </table>
                             </div>
                             <div className="flex gap-4 items-center justify-end">
-                                <input type="number" value={qty} onChange={e => setQty(e.target.value)} className="w-32 p-2 border border-gray-400 outline-none text-xs" placeholder="Số lượng" />
+                                <input type="number" value={qty} onChange={e => setQty(e.target.value)} className="w-32 p-2 border border-gray-400 bg-white outline-none text-xs" placeholder="Số lượng" />
                                 <button onClick={handleAddItem} className="bg-[#3c3836] text-white px-6 py-2 text-xs font-bold rounded shadow">Thêm</button>
                             </div>
                         </div>
@@ -132,8 +164,8 @@ export default function BienBan() {
 
                 {/* FINAL BUTTONS */}
                 <div className="flex justify-end gap-10 mt-10">
-                    <button className="bg-[#3c3836] text-white px-12 py-3 rounded font-bold shadow-lg">Hủy</button>
-                    <button onClick={() => alert("Hoàn tất biên bản!")} style={{ backgroundColor: '#237850' }} className="text-white px-12 py-3 rounded font-bold shadow-lg">Xác nhận</button>
+                    <button onClick={handleCancel} className="bg-[#3c3836] text-white px-12 py-3 rounded font-bold shadow-lg">Hủy</button>
+                    <button onClick={handleConfirm} style={{ backgroundColor: '#237850' }} className="text-white px-12 py-3 rounded font-bold shadow-lg">Xác nhận</button>
                 </div>
             </div>
         </div>

@@ -18,6 +18,28 @@ const getEmployeeByMaNV = async (MaNV) => {
     return result.recordset[0] || null;
 };
 
+const getEmployeeByUsername = async (username) => {
+    const pool = await poolPromise;
+    const result = await pool.request()
+        .input('username', mssql.VarChar(50), username)
+        .query(`
+            SELECT 
+                nv.MaNV, 
+                nv.TenNV,
+                CASE 
+                    WHEN EXISTS(SELECT 1 FROM NV_QLY WHERE MaNV = nv.MaNV) THEN 'Manager'
+                    WHEN EXISTS(SELECT 1 FROM NV_KDOANH WHERE MaNV = nv.MaNV) THEN 'Sales'
+                    WHEN EXISTS(SELECT 1 FROM NV_KTOAN WHERE MaNV = nv.MaNV) THEN 'Accounting'
+                    ELSE 'Other'
+                END AS employeeType
+            FROM NHANVIEN nv
+            WHERE nv.MaNV = @username
+        `);
+
+    return result.recordset[0] || null;
+};
+
 module.exports = {
     getEmployeeByMaNV,
+    getEmployeeByUsername
 };

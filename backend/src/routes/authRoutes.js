@@ -1,8 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const authController = require('../controllers/authController');
 const { getEmployeeByMaNV } = require('../models/authModel');
 
-router.post('/login', async (req, res) => {
+// New login route with username
+router.post('/login', authController.login);
+
+// Legacy route - keep for backward compatibility
+router.post('/validate', async (req, res) => {
     try {
         const { MaNV } = req.body;
 
@@ -29,3 +34,4 @@ router.post('/login', async (req, res) => {
 });
 
 module.exports = router;
+

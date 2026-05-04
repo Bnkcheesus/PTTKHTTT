@@ -82,6 +82,13 @@ const removeBienBanDetail = async (MaHD, MaTB) => {
         .execute('XoaChiTietBienBan');
 };
 
+const deleteBienBan = async (MaHD) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaHD', mssql.VarChar(50), MaHD)
+        .execute('XoaBienBan');
+};
+
 module.exports = {
     getPaidDepositsNoContract,
     getApprovedDepositsNoContract,
@@ -94,4 +101,5 @@ module.exports = {
     getBienBanDetails,
     addBienBanDetail,
     removeBienBanDetail,
+    deleteBienBan,
 };

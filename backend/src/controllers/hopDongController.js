@@ -63,3 +63,14 @@ exports.removeItem = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+// 7. Xóa biên bản
+exports.deleteBienBan = async (req, res) => {
+    try {
+        const { MaHD } = req.body;
+        await hopDongModel.deleteBienBan(MaHD);
+        res.json({ success: true, message: "Biên bản đã được xóa" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

@@ -12,15 +12,17 @@ const {
     getBienBanDetails,
     addBienBanDetail,
     removeBienBanDetail,
+    deleteBienBan,
 } = require('../models/hopDongModel');
 const hopDongController = require('../controllers/hopDongController');
 
 router.get('/contracts', hopDongController.getContracts);
 router.get('/equipments', hopDongController.getEquipments);
 router.post('/bienban/init', hopDongController.initBienBan);
-router.get('/bienban/:MaHD/details', hopDongController.getBienBanDetails);
+router.post('/bienban/delete', hopDongController.deleteBienBan);
 router.post('/bienban/add-item', hopDongController.addItem);
 router.post('/bienban/remove-item', hopDongController.removeItem);
+router.get('/bienban/:MaHD/details', hopDongController.getBienBanDetails);
 
 router.get('/deposits-paid', async (req, res) => {
     try {

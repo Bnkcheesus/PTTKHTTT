@@ -1,32 +1,117 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+// Import Pages cho Manager
 import DepositsManagement from './pages/manager/DepositsManagement';
 import BienBan from './pages/manager/BienBan';
 import RoomChecking from './pages/manager/RoomChecking';
 import Reconciliation from './pages/manager/Reconciliation';
 import Management from './pages/manager/Management';
+
+// Import Pages cho Sale Employee
 import RoomRegistration from './pages/saleEmployee/RoomRegistration';
 import AppointmentScheduling from './pages/saleEmployee/AppointmentScheduling';
 
+// Import Login
+import Login from './pages/Login';
+
+/**
+ * 1. Component Bảo vệ Route (ProtectedRoute)
+ * Kiểm tra xem người dùng đã đăng nhập chưa và có đúng quyền không.
+ */
+const ProtectedRoute = ({ children, allowedRoles }) => {
+    const { user, isLoading } = useAuth();
+
+    if (isLoading) return <div className="p-10 text-center font-bold">Đang kiểm tra quyền truy cập...</div>;
+
+    // Nếu chưa đăng nhập -> về trang Login
+    if (!user) return <Navigate to="/login" replace />;
+
+    // Nếu đã đăng nhập nhưng sai Role -> về trang chủ để tự điều hướng lại
+    if (allowedRoles && !allowedRoles.includes(user.employeeType)) {
+        return <Navigate to="/" replace />;
+    }
+
+    return children;
+};
+
+/**
+ * 2. Component Điều hướng thông minh (RootRedirect)
+ * Khi người dùng vào "/", Component này sẽ đưa họ đến đúng trang làm việc theo Role.
+ */
+const RootRedirect = () => {
+    const { user, isLoading } = useAuth();
+
+    if (isLoading) return null;
+    if (!user) return <Navigate to="/login" replace />;
+
+    // Logic điều hướng theo Role
+    if (user.employeeType === 'Manager') {
+        return <Navigate to="/manager/deposits" replace />;
+    }
+    if (user.employeeType === 'Sales') {
+        return <Navigate to="/dang-ky-phong" replace />;
+    }
+    if (user.employeeType === 'Accounting') {
+        return <Navigate to="/manager/reconciliation" replace />;
+    }
+
+    return <Navigate to="/login" replace />;
+};
+
 function App() {
     return (
-        <Router>
-            <Routes>
-                {/* 1. Manager Routes */}
-                <Route path="/manager/deposits" element={<DepositsManagement />} />
-                <Route path="/manager/bienban" element={<BienBan />} />
-                <Route path="/manager/rooms" element={<RoomChecking />} />
-                <Route path="/manager/reconciliation" element={<Reconciliation />} />
-                <Route path="/manager/management" element={<Management />} />
+        <AuthProvider>
+            <Router>
+                <Routes>
+                    {/* Route công khai */}
+                    <Route path="/login" element={<Login />} />
 
-                {/* 2. Sale Employee Routes (Đã chuyển lên trên dấu *) */}
-                <Route path="/dang-ky-phong" element={<RoomRegistration />} />
-                <Route path="/hen-lich" element={<AppointmentScheduling />} />
+                    {/* --- NHÓM ROUTE CỦA MANAGER --- */}
+                    <Route path="/manager/deposits" element={
+                        <ProtectedRoute allowedRoles={['Manager']}>
+                            <DepositsManagement />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/manager/bienban" element={
+                        <ProtectedRoute allowedRoles={['Manager']}>
+                            <BienBan />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/manager/rooms" element={
+                        <ProtectedRoute allowedRoles={['Manager']}>
+                            <RoomChecking />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/manager/reconciliation" element={
+                        <ProtectedRoute allowedRoles={['Manager', 'Accounting']}>
+                            <Reconciliation />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/manager/management" element={
+                        <ProtectedRoute allowedRoles={['Manager']}>
+                            <Management />
+                        </ProtectedRoute>
+                    } />
 
-                {/* 3. Điều hướng mặc định - LUÔN ĐỂ Ở CUỐI CÙNG */}
-                <Route path="/" element={<Navigate to="/manager/deposits" replace />} />
-                <Route path="*" element={<Navigate to="/manager/deposits" replace />} />
-            </Routes>
-        </Router>
+                    {/* --- NHÓM ROUTE CỦA SALES --- */}
+                    <Route path="/dang-ky-phong" element={
+                        <ProtectedRoute allowedRoles={['Sales']}>
+                            <RoomRegistration />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/hen-lich" element={
+                        <ProtectedRoute allowedRoles={['Sales']}>
+                            <AppointmentScheduling />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* --- ĐIỀU HƯỚNG MẶC ĐỊNH --- */}
+                    <Route path="/" element={<RootRedirect />} />
+                    <Route path="*" element={<RootRedirect />} />
+                </Routes>
+            </Router>
+        </AuthProvider>
     );
 }
 
