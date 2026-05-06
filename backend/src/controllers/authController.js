@@ -2,6 +2,7 @@ const authModel = require('../models/authModel');
 
 exports.login = async (req, res) => {
     try {
+        console.log("Dữ liệu nhận được:", req.body); // THÊM DÒNG NÀY ĐỂ DEBUG
         const { username } = req.body;
 
         if (!username) {

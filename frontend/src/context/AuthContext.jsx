@@ -20,8 +20,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
-        setUser(null);
-        localStorage.removeItem('user');
+        setUser(null); // Xóa user khỏi state
+        localStorage.removeItem('user'); // Xóa user khỏi bộ nhớ trình duyệt
     };
 
     return (
