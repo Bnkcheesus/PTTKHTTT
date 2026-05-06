@@ -23,32 +23,25 @@ export default function ManagerNavbar() {
     };
 
     return (
-        <nav style={{ backgroundColor: '#237850' }} className="text-white shadow-md">
-            <div className="flex items-center justify-between px-4">
-                <div className="flex items-center">
-                    {navItems.map((item, index) => {
-                        const isActive = location.pathname === item.path;
-                        return (
-                            <Link
-                                key={index}
-                                to={item.path}
-                                className={`px-6 py-4 font-medium transition-colors text-sm ${isActive ? 'bg-[#1a5a3c] shadow-inner' : 'hover:bg-[#2d8a5d]'
-                                    }`}
-                            >
-                                {item.label}
-                            </Link>
-                        );
-                    })}
-                </div>
-
-                {/* Nút đăng xuất nằm riêng biệt bên phải */}
-                <button
-                    onClick={handleLogout}
-                    className="px-6 py-4 font-medium text-sm hover:bg-red-700 transition-colors bg-opacity-20 bg-black"
-                >
-                    Đăng xuất
-                </button>
+        <div className="bg-[#2A754B] flex justify-between items-center text-white px-4 shadow-md w-full">
+            <div className="flex">
+                {navItems.map((item, index) => (
+                    <Link
+                        key={index}
+                        to={item.path}
+                        className={`px-6 py-3 font-semibold transition-colors ${location.pathname === item.path ? 'bg-[#333333]' : 'hover:bg-green-800'
+                            }`}
+                    >
+                        {item.label}
+                    </Link>
+                ))}
             </div>
-        </nav>
+            <button
+                onClick={handleLogout}
+                className="px-6 py-3 font-semibold hover:bg-red-700 transition-colors"
+            >
+                Đăng xuất
+            </button>
+        </div>
     );
 }

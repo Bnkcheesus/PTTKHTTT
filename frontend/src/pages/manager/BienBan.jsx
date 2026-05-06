@@ -100,7 +100,10 @@ export default function BienBan() {
                                         {contracts.map(c => (
                                             <tr key={c.MaHopDong} className="border-b border-gray-300">
                                                 <td className="p-2 border-r border-gray-300 w-1/3">{c.MaHopDong}</td>
-                                                <td className="p-2 border-r border-gray-300 w-1/3">{new Date(c.NgayKy).toLocaleDateString('vi-VN')}</td>
+                                                <td className="p-2 border-r border-gray-300 w-1/3">{(() => {
+                                                    const d = new Date(c.NgayKy);
+                                                    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                                                })()}</td>
                                                 <td className="p-2 border-r border-gray-300 w-1/3">{c.HoTen}</td>
                                                 <td className="p-2 text-center">
                                                     <input type="checkbox" checked={selectedHD === c.MaHopDong} onChange={() => handleSelectHD(c.MaHopDong)} />

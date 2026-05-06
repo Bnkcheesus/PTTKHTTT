@@ -134,7 +134,11 @@ export default function DepositsManagement() {
                                         <tr key={deposit.MaPhieuDatCoc} className="hover:bg-gray-50">
                                             <td className="p-3 border-r border-gray-300 w-1/4 text-sm truncate">{deposit.MaPhieuDatCoc}</td>
                                             <td className="p-3 border-r border-gray-300 w-1/4 text-sm truncate">{deposit.HoTen || '-'}</td>
-                                            <td className="p-3 border-r border-gray-300 w-1/4 text-sm truncate">{deposit.NgayLap || '-'}</td>
+                                            <td className="p-3 border-r border-gray-300 w-1/4 text-sm truncate">{(() => {
+                                                if (!deposit.NgayLap) return '-';
+                                                const d = new Date(deposit.NgayLap);
+                                                return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                                            })()}</td>
                                             <td className="p-3 border-r border-gray-300 w-1/4 text-sm truncate">{deposit.MaNhom || 'Không có'}</td>
                                             <td className="p-3 text-center w-16">
                                                 <input

@@ -23,6 +23,7 @@ router.post('/bienban/delete', hopDongController.deleteBienBan);
 router.post('/bienban/add-item', hopDongController.addItem);
 router.post('/bienban/remove-item', hopDongController.removeItem);
 router.get('/bienban/:MaHD/details', hopDongController.getBienBanDetails);
+router.post('/create', hopDongController.createContract);
 
 router.get('/deposits-paid', async (req, res) => {
     try {

@@ -74,3 +74,14 @@ exports.deleteBienBan = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+// 8. Tạo hợp đồng mới
+exports.createContract = async (req, res) => {
+    try {
+        const { MaPhieu, NgayBatDau, NgayKetThuc, NoiDungHD, MaNV } = req.body;
+        await hopDongModel.createContract({ MaPhieu, NgayBatDau, NgayKetThuc, NoiDungHD, MaNV });
+        res.json({ success: true, message: "Hợp đồng đã được tạo thành công" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

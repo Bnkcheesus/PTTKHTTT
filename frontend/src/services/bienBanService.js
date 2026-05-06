@@ -12,9 +12,9 @@ const bienBanService = {
         const res = await axios.get(`${API_URL}/equipments`);
         return res.data;
     },
-    initBienBan: async (MaHD) => {
+    initBienBan: async (MaHD, MaNV) => {
         // Khớp với router.post('/bienban/init')
-        const res = await axios.post(`${API_URL}/bienban/init`, { MaHD });
+        const res = await axios.post(`${API_URL}/bienban/init`, { MaHD, MaNV });
         return res.data;
     },
     getDetails: async (MaHD) => {

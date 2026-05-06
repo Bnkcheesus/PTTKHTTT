@@ -11,6 +11,7 @@ import Management from './pages/manager/Management';
 // Import Pages cho Sale Employee
 import RoomRegistration from './pages/saleEmployee/RoomRegistration';
 import AppointmentScheduling from './pages/saleEmployee/AppointmentScheduling';
+import LapHopDong from './pages/saleEmployee/LapHopDong';
 
 // Import Login
 import Login from './pages/Login';
@@ -103,6 +104,11 @@ function App() {
                     <Route path="/hen-lich" element={
                         <ProtectedRoute allowedRoles={['Sales']}>
                             <AppointmentScheduling />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/lap-hop-dong" element={
+                        <ProtectedRoute allowedRoles={['Sales']}>
+                            <LapHopDong />
                         </ProtectedRoute>
                     } />
 

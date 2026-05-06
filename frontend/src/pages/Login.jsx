@@ -55,9 +55,8 @@ export default function Login() {
                 <div className="bg-white rounded-lg shadow-lg p-8">
                     <div className="text-center mb-8">
                         <h1 className="text-3xl font-bold" style={{ color: '#3c3836' }}>
-                            QUẢN LÝ KÝ TÚC XÁ
+                            HỆ THỐNG KÝ TÚC XÁ DORMSTAY
                         </h1>
-                        <p className="text-gray-600 text-sm mt-2 font-medium">Hệ thống lập biên bản & đối soát</p>
                     </div>
 
                     {error && (
