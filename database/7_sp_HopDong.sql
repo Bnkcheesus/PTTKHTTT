@@ -74,6 +74,8 @@ BEGIN
     -- 3. Insert the new record including @MaNV
     INSERT INTO HOPDONG (MaHopDong, NgayKy, NgayBatDau, NgayKetThuc, NoiDungHD, MaPhieuDatCoc, MaNV)
     VALUES (@MaHD, @NgayKy, @NgayBatDau, @NgayKetThuc, @NoiDungHD, @MaPhieu, @MaNV);
+    -- 3. Return the ID for Node.js to capture
+    SELECT @MaHD AS MaHopDong;
 END;
 
 GO

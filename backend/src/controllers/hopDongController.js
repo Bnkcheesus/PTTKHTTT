@@ -79,8 +79,24 @@ exports.deleteBienBan = async (req, res) => {
 exports.createContract = async (req, res) => {
     try {
         const { MaPhieu, NgayBatDau, NgayKetThuc, NoiDungHD, MaNV } = req.body;
-        await hopDongModel.createContract({ MaPhieu, NgayBatDau, NgayKetThuc, NoiDungHD, MaNV });
-        res.json({ success: true, message: "Hợp đồng đã được tạo thành công" });
+
+        if (!MaPhieu || !NgayBatDau || !NgayKetThuc || !NoiDungHD) {
+            return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin' });
+        }
+
+        const MaHD = await hopDongModel.createContract({
+            MaPhieu,
+            NgayBatDau,
+            NgayKetThuc,
+            NoiDungHD,
+            MaNV
+        });
+
+        res.json({
+            success: true,
+            MaHD: MaHD,
+            message: "Hợp đồng đã được tạo thành công"
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

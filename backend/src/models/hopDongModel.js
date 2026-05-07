@@ -34,13 +34,26 @@ const getContractList = async () => {
 
 const createContract = async ({ MaPhieu, NgayBatDau, NgayKetThuc, NoiDungHD, MaNV = null }) => {
     const pool = await poolPromise;
-    await pool.request()
-        .input('MaPhieu', mssql.VarChar(50), MaPhieu)
-        .input('NgayBatDau', mssql.Date, NgayBatDau)
-        .input('NgayKetThuc', mssql.Date, NgayKetThuc)
-        .input('NoiDungHD', mssql.NVarChar(500), NoiDungHD)
-        .input('MaNV', mssql.VarChar(50), MaNV)
-        .execute('LapHopDong');
+    try {
+        // Log để kiểm tra dữ liệu trước khi gửi
+        console.log("Dữ liệu gửi vào SQL:", { MaPhieu, NgayBatDau, NgayKetThuc, NoiDungHD, MaNV });
+
+        const result = await pool.request()
+            .input('MaPhieu', mssql.VarChar(50), MaPhieu)
+            // Thay đổi ở đây: Dùng VarChar hoặc NVarChar cho chuỗi 'YYYY-MM-DD'
+            // SQL Server sẽ tự convert sang DATE trong Procedure
+            .input('NgayBatDau', mssql.VarChar(10), NgayBatDau)
+            .input('NgayKetThuc', mssql.VarChar(10), NgayKetThuc)
+            .input('NoiDungHD', mssql.NVarChar(500), NoiDungHD)
+            // Đảm bảo MaNV không phải là undefined, nếu không có thì để null
+            .input('MaNV', mssql.VarChar(50), MaNV || null)
+            .execute('LapHopDong');
+
+        return result.recordset[0].MaHopDong;
+    } catch (err) {
+        console.error('SQL Error in createContract:', err);
+        throw err;
+    }
 };
 
 const createBienBan = async (MaHD, MaNV = null) => {

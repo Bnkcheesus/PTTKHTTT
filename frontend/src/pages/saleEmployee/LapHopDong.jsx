@@ -16,6 +16,8 @@ const LapHopDong = () => {
     const [isSuccess, setIsSuccess] = useState(false);
     const [newContractId, setNewContractId] = useState('');
     const [thongBao, setThongBao] = useState({ hienThi: false, noiDung: '', loai: '' });
+    const [showToast, setShowToast] = useState(false);
+    const [isFading, setIsFading] = useState(false);
 
     useEffect(() => {
         loadDeposits();
@@ -36,7 +38,7 @@ const LapHopDong = () => {
             return;
         }
         if (!ngayBatDau || !ngayKetThuc) {
-            setThongBao({ hienThi: true, noiDung: 'Vui lòng nhập ngày bắt đầu và ngày kết thúc', loai: 'error' });
+            setThongBao({ hienThi: true, noiDung: 'Vui lòng chọn ngày bắt đầu và ngày kết thúc', loai: 'error' });
             return;
         }
         if (!noiDung.trim()) {
@@ -44,17 +46,8 @@ const LapHopDong = () => {
             return;
         }
 
-        // Convert DD/MM/YYYY to YYYY-MM-DD format
-        const startDate = convertDDMMYYYYToISO(ngayBatDau);
-        const endDate = convertDDMMYYYYToISO(ngayKetThuc);
-
-        if (!startDate || !endDate) {
-            setThongBao({ hienThi: true, noiDung: 'Định dạng ngày không hợp lệ. Vui lòng nhập theo định dạng DD/MM/YYYY', loai: 'error' });
-            return;
-        }
-
-        // Validate date logic
-        if (startDate >= endDate) {
+        // Validate date logic (date picker returns YYYY-MM-DD format)
+        if (ngayBatDau >= ngayKetThuc) {
             setThongBao({ hienThi: true, noiDung: 'Ngày kết thúc phải sau ngày bắt đầu', loai: 'error' });
             return;
         }
@@ -63,8 +56,8 @@ const LapHopDong = () => {
         try {
             const result = await hopDongService.createContract(
                 selectedDeposit.MaPhieuDatCoc,
-                startDate,
-                endDate,
+                ngayBatDau,
+                ngayKetThuc,
                 noiDung,
                 user?.MaNV
             );
@@ -80,32 +73,15 @@ const LapHopDong = () => {
         }
     };
 
-    const convertDDMMYYYYToISO = (dateString) => {
-        if (!dateString) return null;
-        const parts = dateString.trim().split('/');
-        if (parts.length !== 3) return null;
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10);
-        const year = parseInt(parts[2], 10);
-
-        if (isNaN(day) || isNaN(month) || isNaN(year) || day < 1 || day > 31 || month < 1 || month > 12) {
-            return null;
-        }
-
-        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    };
-
     const formatDateForDisplay = (dateString) => {
         if (!dateString) return '';
-        let date;
-        if (dateString.includes('T')) {
-            date = new Date(dateString);
-        } else if (dateString.includes('/')) {
-            // Already in DD/MM/YYYY format
-            return dateString;
-        } else {
-            date = new Date(dateString + 'T00:00:00');
+        // Handle YYYY-MM-DD format from date picker or database
+        if (dateString.includes('-')) {
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year}`;
         }
+        // Handle ISO format with time
+        const date = new Date(dateString);
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
@@ -251,8 +227,7 @@ const LapHopDong = () => {
                                 Thời gian bắt đầu thuê
                             </label>
                             <input
-                                type="text"
-                                placeholder="DD/MM/YYYY"
+                                type="date"
                                 value={ngayBatDau}
                                 onChange={(e) => setNgayBatDau(e.target.value)}
                                 className="w-full border-b-2 border-gray-800 bg-transparent outline-none text-xs p-1"
@@ -265,8 +240,7 @@ const LapHopDong = () => {
                                 Thời gian kết thúc thuê
                             </label>
                             <input
-                                type="text"
-                                placeholder="DD/MM/YYYY"
+                                type="date"
                                 value={ngayKetThuc}
                                 onChange={(e) => setNgayKetThuc(e.target.value)}
                                 className="w-full border-b-2 border-gray-800 bg-transparent outline-none text-xs p-1"
