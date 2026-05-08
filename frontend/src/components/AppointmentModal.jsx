@@ -1,132 +1,118 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 const AppointmentModal = ({ moHopThoai, khachDangChon, dongHopThoai, xacNhanHenLich }) => {
+    // Thêm State để lưu dữ liệu người dùng nhập
     const [ngayHen, setNgayHen] = useState('');
     const [gioHen, setGioHen] = useState('');
-    const [daXacNhanHopLe, setDaXacNhanHopLe] = useState(false);
+    const [xacNhanHopLe, setXacNhanHopLe] = useState(false);
 
-    // Reset form khi mở lại Modal
-    useEffect(() => {
-        if (moHopThoai) {
-            setNgayHen('');
-            setGioHen('');
-            setDaXacNhanHopLe(false);
-        }
-    }, [moHopThoai]);
+    if (!moHopThoai) return null;
 
-    if (!moHopThoai || !khachDangChon) return null;
-
-    const XuLyXacNhan = () => {
-        // Ngoại lệ 1: Thiếu ngày giờ
+    // Hàm xử lý trước khi gọi ra API ngoài
+    const handleXacNhan = () => {
         if (!ngayHen || !gioHen) {
             alert("Vui lòng chọn đầy đủ Ngày hẹn và Giờ hẹn!");
             return;
         }
-
-        // Ngoại lệ 2: Chưa tích checkbox trách nhiệm
-        if (!daXacNhanHopLe) {
-            alert("Vui lòng tích vào ô xác nhận tính hợp lệ của phòng!");
+        if (!xacNhanHopLe) {
+            alert("Vui lòng đánh dấu xác nhận tính hợp lệ của phòng!");
             return;
         }
 
-        // Ngoại lệ 3: Hẹn lịch trong quá khứ
-        const thoiGianHen = new Date(`${ngayHen}T${gioHen}`);
-        const thoiGianHienTai = new Date();
-        if (thoiGianHen < thoiGianHienTai) {
-            alert("Thời gian hẹn không hợp lệ (không được chọn thời gian trong quá khứ)!");
-            return;
-        }
-
-        // Nếu qua hết các ải, gọi hàm Xác nhận lên Trang cha
-        // Format ISO String chuẩn cho SQL Server: YYYY-MM-DDTHH:MM:SS
-        xacNhanHenLich(`${ngayHen}T${gioHen}:00.000Z`, khachDangChon.MaPhieuYC);
+        const thoiGianGop = `${ngayHen} ${gioHen}:00`; 
+        xacNhanHenLich(thoiGianGop);
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-            <div className="bg-white w-[600px] shadow-2xl relative">
-                {/* Header */}
-                <div className="bg-[#333333] text-white text-center py-3 font-semibold text-lg">
+        <div className="fixed inset-0 bg-[rgba(0,0,0,0.4)] flex justify-center items-center z-[100]">
+            <div className="bg-white w-[650px] rounded shadow-2xl overflow-hidden">
+                <div className="bg-[#333333] text-white text-center py-3 font-bold text-lg">
                     Điền thông tin lịch hẹn mới
                 </div>
 
                 <div className="p-6">
-                    <h3 className="font-bold text-gray-800 mb-3 text-sm">Thông tin khách hàng:</h3>
-                    
-                    {/* Phần Read-only bôi xám */}
+                    <h3 className="font-bold text-gray-900 mb-3 text-base">Thông tin khách hàng:</h3>
                     <div className="grid grid-cols-2 gap-4 mb-6">
+                        {/* Các ô thông tin khách (chỉ đọc) */}
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">Họ và tên</label>
-                            <input type="text" readOnly className="w-full border border-gray-400 p-2 rounded bg-gray-300 text-gray-700 outline-none" value={khachDangChon.HoTen || ''} />
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Họ và tên</label>
+                            <input type="text" readOnly defaultValue={khachDangChon?.HoTen || ""} className="w-full border border-gray-400 bg-gray-300 p-2 rounded outline-none text-gray-700" />
                         </div>
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">CCCD</label>
-                            <input type="text" readOnly className="w-full border border-gray-400 p-2 rounded bg-gray-300 text-gray-700 outline-none" value={khachDangChon.CCCD || ''} />
+                            <label className="block text-sm font-bold text-gray-800 mb-1">CCCD</label>
+                            <input type="text" readOnly defaultValue={khachDangChon?.CCCD || ""} className="w-full border border-gray-400 bg-gray-300 p-2 rounded outline-none text-gray-700" />
                         </div>
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">Giới tính</label>
-                            <input type="text" readOnly className="w-full border border-gray-400 p-2 rounded bg-gray-300 text-gray-700 outline-none" value={khachDangChon.GioiTinh || ''} />
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Giới tính</label>
+                            <input type="text" readOnly defaultValue={khachDangChon?.GioiTinh || ""} className="w-full border border-gray-400 bg-gray-300 p-2 rounded outline-none text-gray-700" />
                         </div>
-                        <div className="hidden"></div> {/* Empty div to align grid */}
+                        <div className="col-span-1 hidden"></div> 
+                        
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">Số điện thoại</label>
-                            <input type="text" readOnly className="w-full border border-gray-400 p-2 rounded bg-gray-300 text-gray-700 outline-none" value={khachDangChon.SDT || ''} />
-                        </div>
-                        <div>
-                            <label className="block font-semibold mb-1 text-sm">Email</label>
-                            <input type="text" readOnly className="w-full border border-gray-400 p-2 rounded bg-gray-300 text-gray-700 outline-none" value={khachDangChon.Email || ''} />
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Số điện thoại</label>
+                            <input type="text" readOnly defaultValue={khachDangChon?.SDT || ""} className="w-full border border-gray-400 bg-gray-300 p-2 rounded outline-none text-gray-700" />
                         </div>
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">Phòng đăng ký</label>
-                            <input type="text" readOnly className="w-full border border-gray-400 p-2 rounded bg-gray-300 text-gray-700 outline-none" value={khachDangChon.MaPhong || ''} />
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Email</label>
+                            <input type="text" readOnly defaultValue={khachDangChon?.Email || ""} className="w-full border border-gray-400 bg-gray-300 p-2 rounded outline-none text-gray-700" />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Phòng đăng ký</label>
+                            <input type="text" readOnly defaultValue={khachDangChon?.MaPhong || ""} className="w-full border border-gray-400 bg-gray-300 p-2 rounded outline-none text-gray-700" />
                         </div>
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">Nhu cầu thuê</label>
-                            <input type="text" readOnly className="w-full border border-gray-400 p-2 rounded bg-gray-300 text-gray-700 outline-none" value={khachDangChon.HinhThucThue || ''} />
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Nhu cầu thuê</label>
+                            <input type="text" readOnly defaultValue={khachDangChon?.HinhThucThue || ""} className="w-full border border-gray-400 bg-gray-300 p-2 rounded outline-none text-gray-700" />
                         </div>
                     </div>
 
-                    <h3 className="font-bold text-gray-800 mb-3 text-sm">Thông tin lịch hẹn:</h3>
-                    
-                    {/* Phần nhập liệu mới */}
+                    <h3 className="font-bold text-gray-900 mb-3 text-base">Thông tin lịch hẹn:</h3>
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">Ngày hẹn*</label>
-                            <input type="date" className="w-full border border-gray-400 p-2 rounded outline-none focus:border-green-700 cursor-pointer" 
-                                value={ngayHen} onChange={(e) => setNgayHen(e.target.value)} 
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Ngày hẹn*</label>
+                            <input 
+                                type="date" 
+                                value={ngayHen}
+                                onChange={(e) => setNgayHen(e.target.value)}
+                                className="w-full border border-gray-400 p-2 rounded outline-none focus:border-[#2A754B]" 
                             />
                         </div>
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">Giờ hẹn*</label>
-                            <input type="time" className="w-full border border-gray-400 p-2 rounded outline-none focus:border-green-700 cursor-pointer" 
-                                value={gioHen} onChange={(e) => setGioHen(e.target.value)} 
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Giờ hẹn*</label>
+                            <input 
+                                type="time" 
+                                value={gioHen}
+                                onChange={(e) => setGioHen(e.target.value)}
+                                className="w-full border border-gray-400 p-2 rounded outline-none focus:border-[#2A754B]" 
                             />
                         </div>
                     </div>
 
-                    <div className="mb-6">
-                        <label className="flex items-center gap-2 cursor-pointer font-medium text-sm">
-                            <input type="checkbox" className="w-4 h-4 accent-green-700" 
-                                checked={daXacNhanHopLe} onChange={(e) => setDaXacNhanHopLe(e.target.checked)} 
-                            />
-                            Tôi đã trực tiếp xác nhận tính hợp lệ của phòng*
-                        </label>
+                    <div className="flex items-center gap-2 mt-4 ml-2">
+                        <input 
+                            type="checkbox" 
+                            checked={xacNhanHopLe}
+                            onChange={(e) => setXacNhanHopLe(e.target.checked)}
+                            className="w-5 h-5 accent-[#2A754B] cursor-pointer" 
+                        />
+                        <label className="text-gray-700 text-sm">Tôi đã trực tiếp xác nhận tính hợp lệ của phòng*</label>
                     </div>
+                </div>
 
-                    {/* Buttons */}
-                    <div className="mt-8 flex justify-end gap-3">
-                        <button onClick={dongHopThoai} className="bg-gray-300 text-black px-6 py-2 rounded font-semibold hover:bg-gray-400 transition-colors">
-                            Huỷ
-                        </button>
-                        <button 
-                            onClick={XuLyXacNhan} 
-                            disabled={!daXacNhanHopLe} // Vô hiệu hóa nếu chưa check
-                            className={`px-6 py-2 rounded font-semibold transition-colors shadow-md 
-                                ${daXacNhanHopLe ? 'bg-[#2A754B] text-white hover:bg-green-800 cursor-pointer' : 'bg-gray-400 text-gray-200 cursor-not-allowed'}`}
+                <div className="px-6 py-4 flex justify-end gap-3 bg-white mt-2 border-t border-gray-200">
+                    <button 
+                        onClick={dongHopThoai}
+                        className="bg-[#D1D5DB] text-gray-800 px-6 py-2 font-bold border border-gray-400 rounded hover:bg-gray-300 transition-colors"
                     >
-                            Xác nhận
-                        </button>
-                    </div>
+                        Huỷ
+                    </button>
+                    <button 
+                        onClick={handleXacNhan} // Gọi hàm nội bộ để gộp thời gian trước
+                        className="bg-[#2A754B] text-white px-6 py-2 font-bold rounded hover:bg-green-800 transition-colors"
+                    >
+                        Xác nhận
+                    </button>
                 </div>
             </div>
         </div>
