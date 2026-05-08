@@ -110,8 +110,7 @@ const AppointmentScheduling = () => {
             <div className="p-8 max-w-6xl mx-auto relative mt-4">
                 
                 {thongBao.hienThi && (
-                    <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-8 py-4 z-[9999] text-white font-bold shadow-2xl text-lg text-center rounded
-                        ${thongBao.loai === 'success' ? 'bg-[#2A754B]' : 'bg-red-600'}`}>
+                    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-8 py-4 z-[9999] text-white font-bold shadow-2xl text-lg text-center rounded bg-[#2A754B]">
                         {thongBao.noiDung}
                     </div>
                 )}

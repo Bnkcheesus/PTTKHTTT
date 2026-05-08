@@ -7,12 +7,20 @@ const LayDSKhachChuaHen = async () => {
 };
 
 const KiemTraTrungLich = async (ThoiGian, MaNV) => {
+    // 1. KIỂM TRA NGÀY QUÁ KHỨ
+    const ngayHen = new Date(ThoiGian);
+    const bayGio = new Date();
+
+    if (ngayHen < bayGio) {
+        // Lỗi này sẽ được catch ở Route và hiện lên Pop-up đỏ ở Frontend
+        throw new Error("Thời gian hẹn không được ở trong quá khứ!");
+    }
+
     const pool = await poolPromise;
-    // Gọt sạch chữ 'T' và 'Z' để ra định dạng SQL Server cực kỳ thích: YYYY-MM-DD HH:mm:ss
+    // Gọt sạch chữ 'T' và 'Z' để SQL Server nhận diện đúng kiểu DATETIME
     const thoiGianSach = ThoiGian.replace('T', ' ').replace(/\..*$/, '');
 
     const result = await pool.request()
-        // Đã đổi thành mssql.VarChar để lừa Driver ODBC
         .input('ThoiGian', mssql.VarChar, thoiGianSach) 
         .input('MaNV', mssql.VarChar, MaNV)
         .execute('KiemTraTrungLich');
