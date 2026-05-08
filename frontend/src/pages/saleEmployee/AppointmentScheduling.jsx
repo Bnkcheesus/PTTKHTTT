@@ -39,66 +39,76 @@ const AppointmentScheduling = () => {
     };
 
     const KiemTraVaMoHenLich = async () => {
-    // Ngoại lệ 1: Chưa chọn khách hàng
-    if (!khachDangChon) {
-        setThongBao({ hienThi: true, noiDung: "Vui lòng chọn một khách hàng để lên lịch hẹn!", loai: "error" });
-        return;
-    }
-
-    try {
-        // Kiểm tra xem khách này có Phiếu Yêu Cầu chưa (Ngoại lệ Sơ đồ Tuần Tự)
-        const res = await axios.get(`http://localhost:5000/api/appointments/request-details/${khachDangChon.MaKH}`);
-        
-        // Cập nhật lại khachDangChon với thông tin Phiếu Yêu Cầu lấy được từ Backend
-        setKhachDangChon({ ...khachDangChon, MaPhieuYC: res.data.MaPhieuYC });
-        setMoHopThoai(true);
-    } catch (error) {
-        // Bắt lỗi 404 (Không tìm thấy PYC) từ Backend
-        if (error.response && error.response.status === 404) {
-             setThongBao({ hienThi: true, noiDung: "Khách hàng này chưa có Phiếu yêu cầu thuê phòng!", loai: "error" });
-        } else {
-             setThongBao({ hienThi: true, noiDung: "Lỗi kết nối khi kiểm tra Phiếu Yêu Cầu", loai: "error" });
+        if (!khachDangChon) {
+            setThongBao({ hienThi: true, noiDung: "Vui lòng chọn một khách hàng!", loai: "error" });
+            return;
         }
-    }
-};
 
-    const GoiApiTaoLichHen = async (thoiGian, maPhieuYC) => {
         try {
-            // Gọi API chốt lịch (Backend sẽ gọi SP KiemTraTrungLich trước khi lưu)
-            await axios.post('http://localhost:5000/api/appointments/schedule', {
-                ThoiGian: thoiGian,
-                MaNV: maNVHienTai,
-                LyDo: 'Hẹn xem phòng thực tế', // Mặc định
-                MaPhieuYC: maPhieuYC
-            });
-
-            // Nếu Backend trả về 2xx -> Thành công (Ảnh 10)
-            setMoHopThoai(false);
-            setThongBao({ hienThi: true, noiDung: "Tạo lịch hẹn mới thành công!", loai: "success" });
-            setKhachDangChon(null);
-            LayDanhSachKhachChuaHen(); // Load lại bảng để khách hàng vừa hẹn biến mất
+            const res = await axios.get(`http://localhost:5000/api/appointments/request-details/${khachDangChon.MaKH}`);
             
-        } catch (error) {
-            // Bắt lỗi Ngoại lệ: Trùng lịch (Backend ném ra HTTP 400)
-            if (error.response && error.response.status === 400) {
-                setThongBao({ hienThi: true, noiDung: error.response.data.message || "Bị trùng lịch với một khách hàng khác!", loai: "error" });
-            } else {
-                setThongBao({ hienThi: true, noiDung: "Đã xảy ra lỗi hệ thống khi tạo lịch hẹn.", loai: "error" });
+            // ĐÃ SỬA CHỖ NÀY: Quét hết mọi trường hợp Backend có thể trả về
+            // (Trả về object, trả về mảng, viết hoa, viết thường...)
+            const maPhieu = res.data.MaPhieuYC || res.data.maPhieuYC || res.data[0]?.MaPhieuYC || res.data[0]?.maPhieuYC;
+            
+            if (!maPhieu) {
+                alert("Lỗi: Không lấy được Mã Phiếu YC từ Backend!");
+                return;
             }
+
+            setKhachDangChon({ ...khachDangChon, MaPhieuYC: maPhieu });
+            setMoHopThoai(true);
+        } catch (error) {
+            setThongBao({ hienThi: true, noiDung: "Khách hàng này chưa có Phiếu yêu cầu thuê phòng!", loai: "error" });
+        }
+    };
+
+    // Sửa lại hàm này trong file AppointmentScheduling.jsx
+    const GoiApiTaoLichHen = async (thoiGianGop) => {
+        try {
+            // Rào luôn trường hợp NULL để SQL không chửi
+            const payload = {
+                ThoiGian: thoiGianGop,
+                LyDo: "Xem phòng",
+                MaPhieuYC: khachDangChon.MaPhieuYC || "", // Thêm || "" để biến undefined thành rỗng
+                MaNV: "NV001"
+            };
+
+            // In ra Console để bác xem tận mắt
+            console.log("CHÚ Ý! Dữ liệu chuẩn bị gửi đi là:", payload);
+
+            await axios.post('http://localhost:5000/api/appointments/schedule', payload); 
+
+            setMoHopThoai(false);
+            setThongBao({ hienThi: true, loai: 'success', noiDung: 'Tạo lịch hẹn mới thành công!' });
+            setTimeout(() => {
+                setThongBao({ hienThi: false, loai: '', noiDung: '' });
+                window.location.reload(); 
+            }, 2000);
+
+        } catch (error) {
+            let loiChiTiet = "Lỗi hệ thống hoặc Server chưa chạy.";
+            if (error.response && error.response.data) {
+                if (error.response.data.error) loiChiTiet = error.response.data.error;
+                else if (error.response.data.message) loiChiTiet = error.response.data.message;
+                else if (typeof error.response.data === 'string') loiChiTiet = error.response.data;
+            } else if (error.message) {
+                loiChiTiet = error.message;
+            }
+
+            setMoHopThoai(false);
+            setThongBao({ hienThi: true, loai: 'error', noiDung: `Thất bại: ${loiChiTiet}` });
+            setTimeout(() => setThongBao({ hienThi: false, loai: '', noiDung: '' }), 5000);
         }
     };
 
     return (
-        // Thẻ div bọc ngoài cùng chiếm toàn bộ màn hình
-        <div className="bg-[#1A1A1A] min-h-screen pb-10"> 
+        <div className="bg-white min-h-screen pb-10"> 
             
-            {/* Chèn thanh điều hướng vào đây (nằm sát trên cùng) */}
             <SaleNavbar />
 
-            {/* Thẻ div chứa nội dung chính của bác */}
-            <div className="p-8 max-w-6xl mx-auto relative mt-8 bg-white rounded-md shadow-lg">
+            <div className="p-8 max-w-6xl mx-auto relative mt-4">
                 
-                {/* Pop-up thông báo (Dùng fixed để luôn ở giữa màn hình kể cả khi cuộn) */}
                 {thongBao.hienThi && (
                     <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-8 py-4 z-[9999] text-white font-bold shadow-2xl text-lg text-center rounded
                         ${thongBao.loai === 'success' ? 'bg-[#2A754B]' : 'bg-red-600'}`}>
@@ -106,7 +116,7 @@ const AppointmentScheduling = () => {
                     </div>
                 )}
 
-                <h2 className="text-2xl font-bold text-center text-gray-800">Danh sách các khách có thể hẹn lịch</h2>
+                <h2 className="text-2xl font-bold text-center text-[#333333]">Danh sách các khách có thể hẹn lịch</h2>
                 <p className="text-center text-gray-500 italic text-sm mb-4">(Chọn một khách hàng để hẹn lịch)</p>
 
                 <PendingCustomerTable 

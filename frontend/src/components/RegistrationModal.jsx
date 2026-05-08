@@ -1,138 +1,121 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 const RegistrationModal = ({ moHopThoai, phongDangChon, dongHopThoai, xacNhanDangKy }) => {
-    const [buocHienTai, setBuocHienTai] = useState(0);
-    const [khachDaiDien, setKhachDaiDien] = useState({
-        HoTen: '', CCCD: '', GioiTinh: 'Nam', SDT: '', Email: '', NhuCau: 'Nguyên phòng', SoNguoiChung: 0
-    });
-    const [danhSachKhachPhu, setDanhSachKhachPhu] = useState([]);
-
-    useEffect(() => {
-        if (moHopThoai) {
-            setBuocHienTai(0);
-            setKhachDaiDien({ HoTen: '', CCCD: '', GioiTinh: 'Nam', SDT: '', Email: '', NhuCau: 'Nguyên phòng', SoNguoiChung: 0 });
-            setDanhSachKhachPhu([]);
-        }
-    }, [moHopThoai]);
+    // Các biến lưu trữ dữ liệu nhân viên nhập vào
+    const [hoTen, setHoTen] = useState('');
+    const [cccd, setCccd] = useState('');
+    const [gioiTinh, setGioiTinh] = useState('Nam');
+    const [gioiTinhKhac, setGioiTinhKhac] = useState('');
+    const [sdt, setSdt] = useState('');
+    const [email, setEmail] = useState('');
+    const [nhuCau, setNhuCau] = useState('Nguyên phòng');
+    const [soNguoiChung, setSoNguoiChung] = useState(0);
 
     if (!moHopThoai) return null;
 
-    const soLuongKhachPhu = parseInt(khachDaiDien.SoNguoiChung) || 0;
-    const laBuocCuoiCung = buocHienTai === soLuongKhachPhu;
-
-    const XuLyTiepTucHoacXacNhan = () => {
-        const duLieuHienTai = buocHienTai === 0 ? khachDaiDien : danhSachKhachPhu[buocHienTai - 1];
-        if (!duLieuHienTai.HoTen || !duLieuHienTai.CCCD || !duLieuHienTai.SDT) {
-            alert("Vui lòng điền đầy đủ thông tin bắt buộc (*)");
+    // Xử lý trước khi gửi
+    const handleXacNhan = () => {
+        if (!hoTen || !cccd || !sdt) {
+            alert("Vui lòng nhập đầy đủ Họ tên, CCCD và Số điện thoại!");
             return;
         }
 
-        if (!laBuocCuoiCung) {
-            if (buocHienTai === 0 && danhSachKhachPhu.length !== soLuongKhachPhu) {
-                setDanhSachKhachPhu(Array(soLuongKhachPhu).fill({ HoTen: '', CCCD: '', GioiTinh: 'Nam', SDT: '', Email: '' }));
-            }
-            setBuocHienTai(buocHienTai + 1);
-        } else {
-            xacNhanDangKy(khachDaiDien, danhSachKhachPhu);
-        }
-    };
+        // Đóng gói dữ liệu thành 1 cục (payload)
+        const payload = {
+            HoTen: hoTen,
+            CCCD: cccd,
+            GioiTinh: gioiTinh === 'Khác' ? gioiTinhKhac : gioiTinh,
+            SDT: sdt,
+            Email: email,
+            
+            // --- SỬA Ở ĐÂY: Gửi nhiều tên biến để rào lỗi Backend không nhận được ---
+            HinhThucThue: nhuCau,  // Tên chuẩn theo Database
+            hinhThucThue: nhuCau,  // Tên kiểu camelCase (nếu backend là Nodejs)
+            NhuCau: nhuCau,        // Dự phòng
+            nhuCauThue: nhuCau,    // Dự phòng
+            // -----------------------------------------------------------------------
 
-    const XuLyQuayLai = () => {
-        if (buocHienTai > 0) setBuocHienTai(buocHienTai - 1);
-    };
+            SoNguoiDuKien: nhuCau === 'Nguyên phòng' ? 1 + Number(soNguoiChung) : 1,
+            MaPhong: phongDangChon?.MaPhong,
+            KhoangGia: phongDangChon?.GiaThuePhong 
+        };
 
-    const CapNhatKhachPhu = (truongDuLieu, giaTri) => {
-        const danhSachMoi = [...danhSachKhachPhu];
-        danhSachMoi[buocHienTai - 1] = { ...danhSachMoi[buocHienTai - 1], [truongDuLieu]: giaTri };
-        setDanhSachKhachPhu(danhSachMoi);
+        xacNhanDangKy(payload);
     };
-
-    const khachHienTai = buocHienTai === 0 ? khachDaiDien : danhSachKhachPhu[buocHienTai - 1] || {};
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-            <div className="bg-white w-[600px] shadow-2xl relative">
-                <div className="bg-[#333333] text-white text-center py-3 font-semibold text-lg">
-                    {buocHienTai === 0 ? "Điền thông tin người đăng ký" : "Điền thông tin người thuê chung"}
+        <div className="fixed inset-0 bg-[rgba(0,0,0,0.4)] flex justify-center items-center z-[100]">
+            <div className="bg-white w-[650px] rounded shadow-2xl overflow-hidden">
+                
+                <div className="bg-[#333333] text-white text-center py-3 font-bold text-lg">
+                    Điền thông tin người đăng ký
                 </div>
 
                 <div className="p-6">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-5">
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">Họ và tên*</label>
-                            <input type="text" className="w-full border border-gray-400 p-2 rounded outline-none focus:border-green-700" 
-                                value={khachHienTai.HoTen} 
-                                onChange={(e) => buocHienTai === 0 ? setKhachDaiDien({...khachDaiDien, HoTen: e.target.value}) : CapNhatKhachPhu('HoTen', e.target.value)} 
-                            />
-                        </div>
-                        <div>
-                            <label className="block font-semibold mb-1 text-sm">CCCD*</label>
-                            <input type="text" className="w-full border border-gray-400 p-2 rounded outline-none focus:border-green-700" 
-                                value={khachHienTai.CCCD} 
-                                onChange={(e) => buocHienTai === 0 ? setKhachDaiDien({...khachDaiDien, CCCD: e.target.value}) : CapNhatKhachPhu('CCCD', e.target.value)} 
-                            />
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Họ và tên*</label>
+                            <input type="text" value={hoTen} onChange={(e) => setHoTen(e.target.value)} className="w-full border border-gray-400 p-2 rounded outline-none focus:border-[#2A754B]" />
                         </div>
                         
+                        <div>
+                            <label className="block text-sm font-bold text-gray-800 mb-1">CCCD*</label>
+                            <input type="text" value={cccd} onChange={(e) => setCccd(e.target.value)} className="w-full border border-gray-400 p-2 rounded outline-none focus:border-[#2A754B]" />
+                        </div>
+
                         <div className="col-span-2">
-                            <label className="block font-semibold mb-1 text-sm">Giới tính*</label>
-                            <div className="flex gap-4 items-center">
+                            <label className="block text-sm font-bold text-gray-800 mb-2">Giới tính*</label>
+                            <div className="flex items-center gap-4 text-sm">
                                 <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name="gender" className="accent-green-700" checked={khachHienTai.GioiTinh === 'Nam'} onChange={() => buocHienTai === 0 ? setKhachDaiDien({...khachDaiDien, GioiTinh: 'Nam'}) : CapNhatKhachPhu('GioiTinh', 'Nam')} /> Nam
+                                    <input type="radio" name="gioitinh" checked={gioiTinh === 'Nam'} onChange={() => setGioiTinh('Nam')} className="w-4 h-4 accent-[#2A754B]" /> Nam
                                 </label>
                                 <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name="gender" className="accent-green-700" checked={khachHienTai.GioiTinh === 'Nữ'} onChange={() => buocHienTai === 0 ? setKhachDaiDien({...khachDaiDien, GioiTinh: 'Nữ'}) : CapNhatKhachPhu('GioiTinh', 'Nữ')} /> Nữ
+                                    <input type="radio" name="gioitinh" checked={gioiTinh === 'Nữ'} onChange={() => setGioiTinh('Nữ')} className="w-4 h-4 accent-[#2A754B]" /> Nữ
                                 </label>
-                                <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name="gender" className="accent-green-700" checked={khachHienTai.GioiTinh === 'Khác'} onChange={() => buocHienTai === 0 ? setKhachDaiDien({...khachDaiDien, GioiTinh: 'Khác'}) : CapNhatKhachPhu('GioiTinh', 'Khác')} /> Khác:
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="gioitinh" checked={gioiTinh === 'Khác'} onChange={() => setGioiTinh('Khác')} className="w-4 h-4 accent-[#2A754B]" /> Khác:
+                                    <input type="text" value={gioiTinhKhac} onChange={(e) => { setGioiTinh('Khác'); setGioiTinhKhac(e.target.value); }} disabled={gioiTinh !== 'Khác'} className="border border-gray-400 p-1 rounded w-24 outline-none focus:border-[#2A754B]" />
                                 </label>
-                                <input type="text" className="border border-gray-400 p-1 rounded outline-none w-24" disabled={khachHienTai.GioiTinh !== 'Khác'} />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block font-semibold mb-1 text-sm">Số điện thoại*</label>
-                            <input type="text" className="w-full border border-gray-400 p-2 rounded outline-none focus:border-green-700" 
-                                value={khachHienTai.SDT} 
-                                onChange={(e) => buocHienTai === 0 ? setKhachDaiDien({...khachDaiDien, SDT: e.target.value}) : CapNhatKhachPhu('SDT', e.target.value)} 
-                            />
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Số điện thoại*</label>
+                            <input type="text" value={sdt} onChange={(e) => setSdt(e.target.value)} className="w-full border border-gray-400 p-2 rounded outline-none focus:border-[#2A754B]" />
                         </div>
-                        <div>
-                            <label className="block font-semibold mb-1 text-sm">Email</label>
-                            <input type="email" className="w-full border border-gray-400 p-2 rounded outline-none focus:border-green-700" 
-                                value={khachHienTai.Email} 
-                                onChange={(e) => buocHienTai === 0 ? setKhachDaiDien({...khachDaiDien, Email: e.target.value}) : CapNhatKhachPhu('Email', e.target.value)} 
-                            />
-                        </div>
-                    </div>
 
-                    {buocHienTai === 0 && (
-                        <div className="mt-4">
-                            <label className="block font-semibold mb-1 text-sm">Nhu cầu thuê*</label>
-                            <div className="flex gap-4 items-center mb-4">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Email</label>
+                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border border-gray-400 p-2 rounded outline-none focus:border-[#2A754B]" />
+                        </div>
+
+                        <div className="col-span-2">
+                            <label className="block text-sm font-bold text-gray-800 mb-2">Nhu cầu thuê*</label>
+                            <div className="flex items-center gap-6 text-sm">
                                 <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name="nhuCau" className="accent-green-700" checked={khachDaiDien.NhuCau === 'Ở ghép'} onChange={() => setKhachDaiDien({...khachDaiDien, NhuCau: 'Ở ghép'})} /> Ở ghép
+                                    <input type="radio" name="nhucau" checked={nhuCau === 'Ở ghép'} onChange={() => setNhuCau('Ở ghép')} className="w-4 h-4 accent-[#2A754B]" /> Ở ghép
                                 </label>
                                 <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name="nhuCau" className="accent-green-700" checked={khachDaiDien.NhuCau === 'Nguyên phòng'} onChange={() => setKhachDaiDien({...khachDaiDien, NhuCau: 'Nguyên phòng'})} /> Nguyên phòng
+                                    <input type="radio" name="nhucau" checked={nhuCau === 'Nguyên phòng'} onChange={() => setNhuCau('Nguyên phòng')} className="w-4 h-4 accent-[#2A754B]" /> Nguyên phòng
                                 </label>
                             </div>
-                            
-                            <label className="block font-semibold mb-1 text-sm">Số lượng người thuê chung khác*</label>
-                            <input type="number" min="0" className="border border-gray-400 p-2 rounded w-24 outline-none focus:border-green-700" 
-                                value={khachDaiDien.SoNguoiChung}
-                                onChange={(e) => setKhachDaiDien({...khachDaiDien, SoNguoiChung: e.target.value})} 
-                            />
                         </div>
-                    )}
 
-                    <div className="mt-8 flex justify-end gap-3">
-                        <button onClick={buocHienTai === 0 ? dongHopThoai : XuLyQuayLai} className="bg-gray-300 text-black px-6 py-2 rounded font-semibold hover:bg-gray-400 transition-colors">
-                            {buocHienTai === 0 ? "Huỷ" : "Quay lại"}
-                        </button>
-                        <button onClick={XuLyTiepTucHoacXacNhan} className="bg-[#2A754B] text-white px-6 py-2 rounded font-semibold hover:bg-green-800 transition-colors shadow-md">
-                            {laBuocCuoiCung ? "Xác nhận" : "Tiếp"}
-                        </button>
+                        <div className="col-span-2">
+                            <label className="block text-sm font-bold text-gray-800 mb-1">Số lượng người thuê chung khác*</label>
+                            <input type="number" value={soNguoiChung} onChange={(e) => setSoNguoiChung(e.target.value)} min="0" className="border border-gray-400 p-2 rounded w-20 outline-none focus:border-[#2A754B]" />
+                        </div>
                     </div>
+                </div>
+
+                <div className="px-6 py-4 flex justify-end gap-3 bg-white border-t border-gray-200">
+                    <button onClick={dongHopThoai} className="bg-[#D1D5DB] text-gray-800 px-6 py-2 font-bold border border-gray-400 rounded hover:bg-gray-300 transition-colors">
+                        Huỷ
+                    </button>
+                    {/* Đã sửa gọi hàm handleXacNhan ở đây */}
+                    <button onClick={handleXacNhan} className="bg-[#2A754B] text-white px-6 py-2 font-bold rounded hover:bg-green-800 transition-colors">
+                        Xác nhận
+                    </button>
                 </div>
             </div>
         </div>

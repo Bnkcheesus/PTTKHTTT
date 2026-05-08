@@ -20,23 +20,21 @@ router.get('/pending', async (req, res) => {
 // Chốt lịch hẹn (có kiểm tra trùng lịch)
 router.post('/schedule', async (req, res) => {
     const { ThoiGian, MaNV, LyDo, MaPhieuYC } = req.body;
-    
     try {
-        // 1. Kiểm tra trùng lịch
-        const isCollision = await KiemTraTrungLich(ThoiGian, MaNV);
-        
-        if (isCollision) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Nhân viên đã có lịch hẹn vào thời gian này. Vui lòng chọn giờ khác.' 
-            });
+        // Kiểm tra dữ liệu đầu vào
+        if(!ThoiGian || !MaNV || !MaPhieuYC) {
+            return res.status(400).json({ error: "Thiếu dữ liệu đầu vào!" });
         }
 
-        // 2. Nếu không trùng, tiến hành lưu lịch hẹn
+        const isCollision = await KiemTraTrungLich(ThoiGian, MaNV);
+        if (isCollision) {
+            return res.status(400).json({ error: 'Nhân viên đã có lịch hẹn vào giờ này.' });
+        }
+
         const maLH = await ThemLichHen({ ThoiGian, LyDo, MaPhieuYC, MaNV });
         res.status(201).json({ success: true, MaLH: maLH });
-        
     } catch (err) {
+        console.error("Lỗi Server:", err.message); // In lỗi ra Terminal để bác soi
         res.status(500).json({ error: err.message });
     }
 });
