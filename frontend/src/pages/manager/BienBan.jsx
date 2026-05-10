@@ -159,7 +159,7 @@ export default function BienBan() {
                             <div key={d.MaThietBi} className="grid grid-cols-[250px_150px_50px] gap-2 mb-1">
                                 <div className="p-2 border border-gray-400 bg-white text-xs">{d.TenThietBi}</div>
                                 <div className="p-2 border border-gray-400 bg-white text-xs">{d.SoLuong}</div>
-                                <button onClick={() => handleRemoveItem(d.MaThietBi)} className="text-red-500 border border-green-600 flex items-center justify-center font-bold">X</button>
+                                <button onClick={() => handleRemoveItem(d.MaThietBi)} className="border border-green-600 flex items-center justify-center font-bold" style={{ color: '#5fed8d' }}>X</button>
                             </div>
                         ))}
                     </div>

@@ -205,3 +205,83 @@ END;
 -- DELETE FROM BIENBAN
 -- select * from NV_QLY
 -- SELECT * FROM NHANVIEN
+-- SELECT * FROM HOPDONG
+-- DELETE FROM HOPDONG WHERE MAPHIEUDATCOC = 'PDC069'
+GO
+CREATE OR ALTER PROCEDURE LayDSPDCDeTraPhong
+AS
+BEGIN
+select PDC.MaPhieuDatCoc, HD.MaHopDong, HD.NgayBatDau, HD.NgayKetThuc, KH.HoTen 
+from PHIEUDATCOC PDC 
+JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH 
+LEFT JOIN HOPDONG HD ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+WHERE PDC.MaPhieuDatCoc NOT IN (
+	SELECT DC.MaPhieuDatCoc FROM PHIEUDATCOC DC 
+	JOIN PHIEUTRAPHONG TP ON TP.MaPhieuDatCoc = DC.MaPhieuDatCoc
+	JOIN HOADON ON HOADON.MaPhieuTra = TP.MaPhieuTra
+) OR PDC.MaPhieuDatCoc NOT IN (
+	SELECT DC.MaPhieuDatCoc FROM PHIEUDATCOC DC 
+	JOIN PHIEUTRAPHONG TP ON TP.MaPhieuDatCoc = DC.MaPhieuDatCoc)
+END;
+GO
+EXEC LayDSPDCDeTraPhong;
+GO
+CREATE OR ALTER PROCEDURE TaoPhieuTraPhong
+    @MaPhieuDatCoc VARCHAR(50),
+    @NgayTraPhong DATE,
+    @TinhTrangHD NVARCHAR(100),
+    @MaNV VARCHAR(50)
+AS
+BEGIN
+    -- 1. Validate: MaPhieuDatCoc must exist
+    IF NOT EXISTS (SELECT 1 FROM PHIEUDATCOC WHERE MaPhieuDatCoc = @MaPhieuDatCoc)
+    BEGIN
+        RAISERROR(N'Phiếu đặt cọc không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    -- 2. Validate: MaNV must be in NV_KDOANH
+    IF NOT EXISTS (SELECT 1 FROM NV_KDOANH WHERE MaNV = @MaNV)
+    BEGIN
+        RAISERROR(N'Nhân viên không thuộc bộ phận kinh doanh.', 16, 1);
+        RETURN;
+    END
+
+    -- 3. Guard: already has a PHIEUTRAPHONG
+    IF EXISTS (
+        SELECT 1 FROM PHIEUTRAPHONG
+        WHERE MaPhieuDatCoc = @MaPhieuDatCoc
+    )
+    BEGIN
+        RAISERROR(N'Phiếu đặt cọc này đã có phiếu trả phòng.', 16, 1);
+        RETURN;
+    END
+
+    -- 4. Guard: already has an HOADON linked via PHIEUTRAPHONG
+    IF EXISTS (
+        SELECT 1 FROM HOADON HD
+        JOIN PHIEUTRAPHONG TP ON HD.MaPhieuTra = TP.MaPhieuTra
+        WHERE TP.MaPhieuDatCoc = @MaPhieuDatCoc
+    )
+    BEGIN
+        RAISERROR(N'Phiếu đặt cọc này đã có hóa đơn liên kết.', 16, 1);
+        RETURN;
+    END
+
+    -- 5. Generate new ID (PTP001, PTP002, ...)
+    DECLARE @MaPhieuTra VARCHAR(50);
+    DECLARE @NextNum INT;
+
+    SELECT @NextNum = ISNULL(MAX(CAST(SUBSTRING(MaPhieuTra, 4, 10) AS INT)), 0) + 1
+    FROM PHIEUTRAPHONG;
+
+    SET @MaPhieuTra = 'PTP' + RIGHT('000' + CAST(@NextNum AS VARCHAR(10)), 3);
+
+    -- 6. Insert
+    INSERT INTO PHIEUTRAPHONG (MaPhieuTra, NgayTraPhong, TinhTrangHD, MaPhieuDatCoc, MaNV)
+    VALUES (@MaPhieuTra, @NgayTraPhong, @TinhTrangHD, @MaPhieuDatCoc, @MaNV);
+
+    -- 7. Return the new ID to the caller
+    SELECT @MaPhieuTra AS MaPhieuTra;
+END;
+GO

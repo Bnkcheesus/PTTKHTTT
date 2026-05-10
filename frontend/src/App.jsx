@@ -12,6 +12,7 @@ import Management from './pages/manager/Management';
 import RoomRegistration from './pages/saleEmployee/RoomRegistration';
 import AppointmentScheduling from './pages/saleEmployee/AppointmentScheduling';
 import LapHopDong from './pages/saleEmployee/LapHopDong';
+import TraPhong from './pages/saleEmployee/TraPhong';
 
 // Import Login
 import Login from './pages/Login';
@@ -109,6 +110,11 @@ function App() {
                     <Route path="/lap-hop-dong" element={
                         <ProtectedRoute allowedRoles={['Sales']}>
                             <LapHopDong />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/tra-phong" element={
+                        <ProtectedRoute allowedRoles={['Sales']}>
+                            <TraPhong />
                         </ProtectedRoute>
                     } />
 

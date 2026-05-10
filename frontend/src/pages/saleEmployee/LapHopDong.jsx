@@ -103,36 +103,42 @@ const LapHopDong = () => {
 
     if (isSuccess) {
         return (
-            <div className="min-h-screen bg-white">
+            <div className="min-h-screen bg-gray-100">
                 <SaleNavbar />
-                <div className="flex justify-center items-center min-h-[calc(100vh-70px)] bg-gradient-to-b from-green-50 to-white">
-                    <div className="bg-white rounded-lg shadow-2xl p-12 max-w-md w-full mx-4">
-                        <div className="text-center">
-                            <div className="mb-6">
-                                <svg className="w-24 h-24 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                <div className="p-8 max-w-[800px] mx-auto">
+                    <div className="bg-white rounded shadow-sm">
+                        {/* Header */}
+                        <div className="bg-[#237850] text-white p-4 text-center font-bold text-lg rounded-t">
+                            Lập hợp đồng thành công
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-12 text-center">
+                            <p className="text-gray-800 mb-8">
+                                <span>Mã hợp đồng: </span>
+                                <span style={{ color: '#5fed8d' }} className="font-bold text-xl">{newContractId}</span>
+                            </p>
+
+                            <div className="space-y-3 text-gray-700 mb-8">
+                                <p>Tên khách: {selectedDeposit?.HoTen}</p>
+                                <p>Ngày bắt đầu: {formatDateForDisplay(ngayBatDau)}</p>
+                                <p>Ngày kết thúc: {formatDateForDisplay(ngayKetThuc)}</p>
                             </div>
-                            <h1 className="text-3xl font-bold text-green-600 mb-4">Thành công!</h1>
-                            <p className="text-gray-700 text-lg mb-2">Hợp đồng đã được tạo thành công</p>
-                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6">
-                                <p className="text-gray-700 font-semibold">Mã hợp đồng: <span className="text-green-600">{newContractId}</span></p>
-                                <p className="text-gray-600 mt-2">Khách hàng: <span className="font-semibold">{selectedDeposit?.HoTen}</span></p>
-                                <p className="text-gray-600 mt-1">Từ ngày: <span className="font-semibold">{formatDateForDisplay(ngayBatDau)}</span></p>
-                                <p className="text-gray-600 mt-1">Đến ngày: <span className="font-semibold">{formatDateForDisplay(ngayKetThuc)}</span></p>
-                            </div>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={handleReset}
-                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition-colors"
-                                >
-                                    Tạo hợp đồng mới
-                                </button>
+
+                            {/* Buttons */}
+                            <div className="flex gap-6 justify-center">
                                 <button
                                     onClick={handleCancel}
-                                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded transition-colors"
+                                    className="bg-[#3c3836] text-white px-8 py-2 font-bold text-sm rounded hover:bg-[#2a2622] transition-colors"
                                 >
                                     Quay lại
+                                </button>
+                                <button
+                                    onClick={handleReset}
+                                    style={{ backgroundColor: '#237850' }}
+                                    className="text-white px-8 py-2 font-bold text-sm rounded hover:opacity-90 transition-opacity"
+                                >
+                                    Tiếp tục
                                 </button>
                             </div>
                         </div>
