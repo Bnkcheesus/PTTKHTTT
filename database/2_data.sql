@@ -575,6 +575,16 @@ INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc,
 INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc, MaKH, MaNV) VALUES ('PDC069', '2023-08-29', N'Cọc giữ chỗ', N'Đã thanh toán', 2500000, 'KH008', 'NV004');
 INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc, MaKH, MaNV) VALUES ('PDC070', '2023-02-12', N'Cọc giữ chỗ', N'Đã thanh toán', 3500000, 'KH050', 'NV005');
 
+
+UPDATE PHIEUDATCOC
+SET MaPhieuYC = (
+    SELECT TOP 1 PYC.MaPhieuYC
+    FROM PHIEUYEUCAU PYC
+    WHERE PYC.MaKH = PHIEUDATCOC.MaKH
+    ORDER BY PYC.MaPhieuYC
+)
+WHERE MaPhieuYC IS NULL;
+
 -- Bảng CHITIETDATCOC
 INSERT INTO CHITIETDATCOC (MaPhieuDatCoc, MaGiuong) VALUES ('PDC001', 'P004_G3');
 INSERT INTO CHITIETDATCOC (MaPhieuDatCoc, MaGiuong) VALUES ('PDC002', 'P027_G2');

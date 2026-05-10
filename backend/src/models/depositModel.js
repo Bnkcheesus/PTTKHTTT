@@ -1,8 +1,16 @@
 const { poolPromise, mssql } = require('../config/db');
 
-/**
- * --- XÁC NHẬN THUÊ ---
- */
+const LayPhieuDatCocTheoMaPhieuYC = async (MaPhieuYC) => {
+    const pool = await poolPromise;
+    const result = await pool.request()
+        .input('MaPhieuYC', mssql.VarChar(50), MaPhieuYC)
+        .query(`
+            SELECT *
+            FROM PHIEUDATCOC
+            WHERE MaPhieuYC = @MaPhieuYC
+        `)
+    return result.recordset[0] || null;
+};
 
 // Tìm kiếm thông tin yêu cầu thuê dựa trên CCCD để hiển thị lên Form Xác nhận
 const getPendingRequestByCCCD = async (cccd) => {
@@ -27,10 +35,10 @@ const getPendingRequestByCCCD = async (cccd) => {
 };
 
 // Tạo Phiếu Đặt Cọc mới (gọi SP ThemPDC từ File 5)
-const createDeposit = async ({ tienCoc, maKH, maNV, maPhong, maPhieuYC }) => {
+const createDeposit = async (tienCoc, maKH, maNV, maPhong, maPhieuYC) => {
+    console.log('Dữ liệu nhận được để tạo Phiếu Đặt Cọc:', { tienCoc, maKH, maNV, maPhong, maPhieuYC }); // Debug log
     const pool = await poolPromise;
     const result = await pool.request()
-        .input('TrangThai', mssql.NVarChar(50), 'Chưa xác nhận')
         .input('TienCoc', mssql.Decimal(18, 2), tienCoc)
         .input('MaKH', mssql.VarChar(50), maKH)
         .input('MaNV', mssql.VarChar(50), maNV)
@@ -77,6 +85,7 @@ const updatePaymentStatus = async (maPDC, hinhThucThanhToan) => {
 };
 
 module.exports = {
+    LayPhieuDatCocTheoMaPhieuYC,
     getPendingRequestByCCCD,
     createDeposit,
     getDepositInfoByCCCD,
