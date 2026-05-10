@@ -174,6 +174,7 @@ const XacNhanThue = () => {
                                     <DongThongTin label="Phòng" value={duLieu.phong.MaPhong} />
                                     <DongThongTin label="Loại phòng" value={duLieu.phong.TenLoai} />
                                     <DongThongTin label="Số người tối đa" value={duLieu.phong.SoNguoiThueToiDa} />
+                                    <DongThongTin label="Số người dự kiến" value={duLieu.phieuYeuCau.SoNguoiDuKien} />
                                     <DongThongTin label="Khu vực" value={duLieu.phong.TenKhuVuc} />
                                     <DongThongTin label="Địa chỉ" value={duLieu.phong.DiaChi} />
                                     

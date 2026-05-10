@@ -59,27 +59,128 @@ GO
 
 -- Thêm Phiếu Đặt Cọc
 CREATE OR ALTER PROCEDURE ThemPDC
-    @TrangThai NVARCHAR(50), --Da thanh toan, Chua thanh toan, ...
     @TienCoc DECIMAL(18, 2),
     @MaKH VARCHAR(50),
     @MaNV VARCHAR(50),
     @MaPhong VARCHAR(50),
-	@MaPhieuYC VARCHAR(50)
+    @MaPhieuYC VARCHAR(50)
 AS
 BEGIN
+    SET NOCOUNT ON;
+
     DECLARE @NextNum INT;
     DECLARE @MaPhieuDatCoc VARCHAR(50);
 
-    -- Tự động sinh mã PDC mới
-    SELECT @NextNum = ISNULL(MAX(CAST(SUBSTRING(MaPhieuDatCoc, 4, 10) AS INT)), 0) + 1 FROM PHIEUDATCOC;
+    DECLARE @HinhThucThue NVARCHAR(100);
+    DECLARE @SoNguoiDuKien INT;
+
+    -- Variables xử lý giường
+    DECLARE @MaGiuong VARCHAR(50);
+
+    --------------------------------------------------------
+    -- Lấy thông tin phiếu yêu cầu
+    --------------------------------------------------------
+    SELECT 
+        @HinhThucThue = HinhThucThue,
+        @SoNguoiDuKien = SoNguoiDuKien
+    FROM PHIEUYEUCAU
+    WHERE MaPhieuYC = @MaPhieuYC;
+
+    --------------------------------------------------------
+    -- Sinh mã PDC mới
+    --------------------------------------------------------
+    SELECT 
+        @NextNum = ISNULL(MAX(CAST(SUBSTRING(MaPhieuDatCoc, 4, 10) AS INT)), 0) + 1
+    FROM PHIEUDATCOC;
+
     SET @MaPhieuDatCoc = 'PDC' + RIGHT('000' + CAST(@NextNum AS VARCHAR(10)), 3);
 
-    -- Insert vào DB
-    INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc, MaKH, MaNV, MaPhong, MaPhieuYC)
-    VALUES (@MaPhieuDatCoc, GETDATE(), N'Cọc giữ chỗ', N'Chưa thanh toán', @TienCoc, @MaKH, @MaNV, @MaPhong, @MaPhieuYC);
+    --------------------------------------------------------
+    -- Insert PHIEUDATCOC
+    --------------------------------------------------------
+    INSERT INTO PHIEUDATCOC
+    (
+        MaPhieuDatCoc,
+        NgayLap,
+        LoaiDatCoc,
+        TrangThai,
+        TienCoc,
+        MaKH,
+        MaNV,
+        MaPhong,
+        MaPhieuYC
+    )
+    VALUES
+    (
+        @MaPhieuDatCoc,
+        GETDATE(),
+        N'Cọc giữ chỗ',
+        N'Chưa thanh toán',
+        @TienCoc,
+        @MaKH,
+        @MaNV,
+        @MaPhong,
+        @MaPhieuYC
+    );
 
-    -- Trả về mã vừa sinh ra
+    --------------------------------------------------------
+    -- Nếu là ở ghép -> thêm CHITIETDATCOC
+    --------------------------------------------------------
+    IF (@HinhThucThue = N'Ở ghép')
+    BEGIN
+
+        DECLARE @Count INT = 0;
+
+        -- Cursor lấy các giường trống
+        DECLARE curGiuong CURSOR FOR
+        SELECT TOP (@SoNguoiDuKien) MaGiuong
+        FROM GIUONG
+        WHERE MaPhong = @MaPhong
+          AND TrangThai = N'Trống';
+
+        OPEN curGiuong;
+
+        FETCH NEXT FROM curGiuong INTO @MaGiuong;
+
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+
+            ------------------------------------------------
+            -- Gọi thủ tục thêm chi tiết đặt cọc
+            ------------------------------------------------
+            EXEC ThemChiTietDatCoc
+                @MaPhieuDatCoc,
+                @MaGiuong;
+
+            ------------------------------------------------
+            -- Cập nhật trạng thái giường
+            ------------------------------------------------
+            UPDATE GIUONG
+            SET TrangThai = N'Đã giữ chỗ'
+            WHERE MaGiuong = @MaGiuong;
+
+            SET @Count = @Count + 1;
+
+            FETCH NEXT FROM curGiuong INTO @MaGiuong;
+        END
+
+        CLOSE curGiuong;
+        DEALLOCATE curGiuong;
+
+        ----------------------------------------------------
+        -- Kiểm tra đủ số giường không
+        ----------------------------------------------------
+        IF (@Count < @SoNguoiDuKien)
+        BEGIN
+            PRINT N'Không đủ giường trống!';
+        END
+    END
+
+    --------------------------------------------------------
+    -- Trả về mã PDC vừa tạo
+    --------------------------------------------------------
     SELECT @MaPhieuDatCoc AS MaPhieuDatCocMoi;
+
 END
 GO
 
