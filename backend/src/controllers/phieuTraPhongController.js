@@ -29,10 +29,10 @@ exports.createReturnVoucher = async (req, res) => {
     try {
         const { MaPhieuDatCoc, NgayTraPhong, TinhTrangHD, MaNV } = req.body;
 
-        // Validation
+        // Validation phía client
         if (!MaPhieuDatCoc || !NgayTraPhong || !TinhTrangHD || !MaNV) {
             return res.status(400).json({
-                error: 'Missing required fields: MaPhieuDatCoc, NgayTraPhong, TinhTrangHD, MaNV'
+                error: 'Vui lòng điền đầy đủ các trường: MaPhieuDatCoc, NgayTraPhong, TinhTrangHD, MaNV'
             });
         }
 
@@ -45,7 +45,8 @@ exports.createReturnVoucher = async (req, res) => {
 
         res.json(result);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        // Bắt lỗi RAISERROR từ SQL Server (ví dụ: "Phiếu đặt cọc không tồn tại.", "Nhân viên không thuộc bộ phận kinh doanh.")
+        res.status(400).json({ error: err.message });
     }
 };
 

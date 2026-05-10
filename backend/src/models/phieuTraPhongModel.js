@@ -1,26 +1,14 @@
 const { poolPromise, mssql } = require('../config/db');
 
-// Get list of deposit slips that haven't been returned yet and have no invoice
+// Gọi SP LayDSPDCDeTraPhong: Lấy danh sách phiếu đặt cọc để trả phòng
 const getContractsForReturn = async () => {
     const pool = await poolPromise;
-    const result = await pool.request().query(`
-        SELECT 
-            pdc.MaPhieuDatCoc,
-            ISNULL(hd.MaHopDong, N'Không có') AS MaHopDong,
-            hd.NgayBatDau,
-            hd.NgayKetThuc,
-            kh.HoTen,
-            kh.SDT,
-            p.MaPhong
-        FROM PHIEUDATCOC pdc
-        JOIN KHACHHANG kh ON pdc.MaKH = kh.MaKH
-        JOIN PHONG p ON pdc.MaPhong = p.MaPhong
-        LEFT JOIN HOPDONG hd ON hd.MaPhieuDatCoc = pdc.MaPhieuDatCoc
-    `);
+    // Sử dụng SP bạn đã định nghĩa trong 7_sp_HopDong.sql
+    const result = await pool.request().execute('LayDSPDCDeTraPhong');
     return result.recordset;
 };
 
-// Get contract details by deposit ID
+// Lấy chi tiết hợp đồng theo Mã phiếu đặt cọc
 const getContractDetail = async (MaPhieuDatCoc) => {
     const pool = await poolPromise;
     const result = await pool.request()
@@ -47,75 +35,48 @@ const getContractDetail = async (MaPhieuDatCoc) => {
     return result.recordset[0];
 };
 
-// Create a new return room voucher
+// Gọi SP TaoPhieuTraPhong: Tạo phiếu trả phòng mới
 const createReturnVoucher = async ({ MaPhieuDatCoc, NgayTraPhong, TinhTrangHD, MaNV }) => {
     const pool = await poolPromise;
     try {
-        // Guard: reject if MaPhieuDatCoc already has a PHIEUTRAPHONG row
-        const existsCheck = await pool.request()
-            .input('MaPhieuDatCoc', mssql.VarChar(50), MaPhieuDatCoc)
-            .query(`
-                SELECT COUNT(*) AS cnt
-                FROM PHIEUTRAPHONG
-                WHERE MaPhieuDatCoc = @MaPhieuDatCoc
-            `);
-        if (existsCheck.recordset[0].cnt > 0) {
-            throw new Error('Phiếu đặt cọc này đã có phiếu trả phòng.');
-        }
-
-        // Guard: reject if MaPhieuDatCoc already has an invoice (via PHIEUTRAPHONG → HOADON)
-        const invoiceCheck = await pool.request()
-            .input('MaPhieuDatCoc', mssql.VarChar(50), MaPhieuDatCoc)
-            .query(`
-                SELECT COUNT(*) AS cnt
-                FROM HOADON hdoa
-                JOIN PHIEUTRAPHONG ptr ON hdoa.MaPhieuTra = ptr.MaPhieuTra
-                WHERE ptr.MaPhieuDatCoc = @MaPhieuDatCoc
-            `);
-        if (invoiceCheck.recordset[0].cnt > 0) {
-            throw new Error('Phiếu đặt cọc này đã có hóa đơn liên kết.');
-        }
-
-        // Generate new ID
-        const idResult = await pool.request().query(`
-            SELECT 'PTR' + CONVERT(VARCHAR(20), COUNT(*) + 1) as NewId 
-            FROM PHIEUTRAPHONG
-        `);
-        const newId = idResult.recordset[0].NewId;
-
-        // Format date
-        const formatToDMY = (dateStr) => {
-            if (!dateStr) return new Date().toLocaleDateString('en-GB');
-            if (dateStr.includes('-')) {
-                const [year, month, day] = dateStr.split('-');
-                return `${day}/${month}/${year}`;
+        // 1. Xử lý chuỗi ngày "sạch" theo định dạng YYYY-MM-DD
+        let ngayTraSach = NgayTraPhong;
+        if (NgayTraPhong && typeof NgayTraPhong === 'string') {
+            if (NgayTraPhong.includes('/')) {
+                const [day, month, year] = NgayTraPhong.split('/');
+                ngayTraSach = `${year}-${month}-${day}`;
+            } else if (NgayTraPhong.includes('T')) {
+                ngayTraSach = NgayTraPhong.split('T')[0];
             }
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-GB');
+        }
+
+        // 2. Xử lý escape dấu nháy đơn (') cho Tình Trạng HĐ để không làm hỏng cú pháp SQL khi nối chuỗi
+        const safeTinhTrangHD = TinhTrangHD ? TinhTrangHD.replace(/'/g, "''") : '';
+
+        // 3. NỐI CHUỖI TRỰC TIẾP (RAW QUERY): Bỏ qua hoàn toàn .input()
+        // Cách này đưa câu lệnh thuần túy xuống SQL Server giống y hệt lúc bạn gõ trong SSMS
+        const queryStr = `
+            EXEC TaoPhieuTraPhong 
+                @MaPhieuDatCoc = '${MaPhieuDatCoc}', 
+                @NgayTraPhong = '${ngayTraSach}', 
+                @TinhTrangHD = N'${safeTinhTrangHD}', 
+                @MaNV = '${MaNV}'
+        `;
+
+        const result = await pool.request().query(queryStr);
+
+        // 4. Trả ID vừa tạo về cho Controller
+        return { 
+            success: true, 
+            MaPhieuTra: result.recordset[0].MaPhieuTra 
         };
-
-        const ngayTra_DMY = formatToDMY(NgayTraPhong);
-
-        // Insert return voucher
-        await pool.request()
-            .input('MaPhieuTra', mssql.VarChar(50), newId)
-            .input('NgayTraPhong', mssql.VarChar(10), ngayTra_DMY)
-            .input('TinhTrangHD', mssql.NVarChar(100), TinhTrangHD)
-            .input('MaPhieuDatCoc', mssql.VarChar(50), MaPhieuDatCoc)
-            .input('MaNV', mssql.VarChar(50), MaNV)
-            .query(`
-                INSERT INTO PHIEUTRAPHONG (MaPhieuTra, NgayTraPhong, TinhTrangHD, MaPhieuDatCoc, MaNV)
-                VALUES (@MaPhieuTra, CAST(@NgayTraPhong AS DATE), @TinhTrangHD, @MaPhieuDatCoc, @MaNV)
-            `);
-
-        return { success: true, MaPhieuTra: newId };
     } catch (err) {
-        console.error('SQL Error:', err);
-        throw err;
+        console.error('SQL Error in createReturnVoucher:', err.message);
+        throw new Error(err.message); 
     }
 };
 
-// Get return voucher details
+// Lấy chi tiết phiếu trả phòng
 const getReturnVoucherDetail = async (MaPhieuTra) => {
     const pool = await poolPromise;
     const result = await pool.request()
@@ -141,7 +102,7 @@ const getReturnVoucherDetail = async (MaPhieuTra) => {
     return result.recordset[0];
 };
 
-// Get all return vouchers
+// Lấy tất cả phiếu trả phòng
 const getAllReturnVouchers = async () => {
     const pool = await poolPromise;
     const result = await pool.request().query(`
@@ -165,7 +126,7 @@ const getAllReturnVouchers = async () => {
     return result.recordset;
 };
 
-// Delete return voucher
+// Xóa phiếu trả phòng
 const deleteReturnVoucher = async (MaPhieuTra) => {
     const pool = await poolPromise;
     await pool.request()

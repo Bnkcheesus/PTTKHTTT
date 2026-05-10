@@ -207,68 +207,59 @@ END;
 -- SELECT * FROM NHANVIEN
 -- SELECT * FROM HOPDONG
 -- DELETE FROM HOPDONG WHERE MAPHIEUDATCOC = 'PDC069'
+
 GO
 CREATE OR ALTER PROCEDURE LayDSPDCDeTraPhong
 AS
 BEGIN
-select PDC.MaPhieuDatCoc, HD.MaHopDong, HD.NgayBatDau, HD.NgayKetThuc, KH.HoTen 
-from PHIEUDATCOC PDC 
-JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH 
-LEFT JOIN HOPDONG HD ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
-WHERE PDC.MaPhieuDatCoc NOT IN (
-	SELECT DC.MaPhieuDatCoc FROM PHIEUDATCOC DC 
-	JOIN PHIEUTRAPHONG TP ON TP.MaPhieuDatCoc = DC.MaPhieuDatCoc
-	JOIN HOADON ON HOADON.MaPhieuTra = TP.MaPhieuTra
-) OR PDC.MaPhieuDatCoc NOT IN (
-	SELECT DC.MaPhieuDatCoc FROM PHIEUDATCOC DC 
-	JOIN PHIEUTRAPHONG TP ON TP.MaPhieuDatCoc = DC.MaPhieuDatCoc)
+    SELECT 
+        PDC.MaPhieuDatCoc, 
+        ISNULL(HD.MaHopDong, N'Không có') AS MaHopDong, 
+        HD.NgayBatDau, 
+        HD.NgayKetThuc, 
+        KH.HoTen,
+        PDC.MaPhong -- Lấy thêm mã phòng để frontend tiện hiển thị nếu cần
+    FROM PHIEUDATCOC PDC 
+    JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH 
+    LEFT JOIN HOPDONG HD ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+    WHERE PDC.TrangThai <> N'Đã trả phòng' -- CHẶN HIỂN THỊ CÁC PHIẾU ĐÃ TRẢ PHÒNG
+      AND PDC.MaPhieuDatCoc NOT IN (
+          SELECT MaPhieuDatCoc FROM PHIEUTRAPHONG
+      )
 END;
+
 GO
 EXEC LayDSPDCDeTraPhong;
 GO
+
+GO
 CREATE OR ALTER PROCEDURE TaoPhieuTraPhong
     @MaPhieuDatCoc VARCHAR(50),
-    @NgayTraPhong DATE,
+    @NgayTraPhong VARCHAR(20), -- Dùng VARCHAR để "lừa" driver Node.js như cách của bạn
     @TinhTrangHD NVARCHAR(100),
     @MaNV VARCHAR(50)
 AS
 BEGIN
-    -- 1. Validate: MaPhieuDatCoc must exist
+    -- 1. Validate
     IF NOT EXISTS (SELECT 1 FROM PHIEUDATCOC WHERE MaPhieuDatCoc = @MaPhieuDatCoc)
     BEGIN
         RAISERROR(N'Phiếu đặt cọc không tồn tại.', 16, 1);
         RETURN;
     END
 
-    -- 2. Validate: MaNV must be in NV_KDOANH
     IF NOT EXISTS (SELECT 1 FROM NV_KDOANH WHERE MaNV = @MaNV)
     BEGIN
         RAISERROR(N'Nhân viên không thuộc bộ phận kinh doanh.', 16, 1);
         RETURN;
     END
 
-    -- 3. Guard: already has a PHIEUTRAPHONG
-    IF EXISTS (
-        SELECT 1 FROM PHIEUTRAPHONG
-        WHERE MaPhieuDatCoc = @MaPhieuDatCoc
-    )
+    IF EXISTS (SELECT 1 FROM PHIEUTRAPHONG WHERE MaPhieuDatCoc = @MaPhieuDatCoc)
     BEGIN
         RAISERROR(N'Phiếu đặt cọc này đã có phiếu trả phòng.', 16, 1);
         RETURN;
     END
 
-    -- 4. Guard: already has an HOADON linked via PHIEUTRAPHONG
-    IF EXISTS (
-        SELECT 1 FROM HOADON HD
-        JOIN PHIEUTRAPHONG TP ON HD.MaPhieuTra = TP.MaPhieuTra
-        WHERE TP.MaPhieuDatCoc = @MaPhieuDatCoc
-    )
-    BEGIN
-        RAISERROR(N'Phiếu đặt cọc này đã có hóa đơn liên kết.', 16, 1);
-        RETURN;
-    END
-
-    -- 5. Generate new ID (PTP001, PTP002, ...)
+    -- 2. Tạo mã phiếu trả phòng tự động
     DECLARE @MaPhieuTra VARCHAR(50);
     DECLARE @NextNum INT;
 
@@ -277,11 +268,38 @@ BEGIN
 
     SET @MaPhieuTra = 'PTP' + RIGHT('000' + CAST(@NextNum AS VARCHAR(10)), 3);
 
-    -- 6. Insert
-    INSERT INTO PHIEUTRAPHONG (MaPhieuTra, NgayTraPhong, TinhTrangHD, MaPhieuDatCoc, MaNV)
-    VALUES (@MaPhieuTra, @NgayTraPhong, @TinhTrangHD, @MaPhieuDatCoc, @MaNV);
+    -- =========================================================
+    -- BẮT ĐẦU CẬP NHẬT DỮ LIỆU
+    -- =========================================================
 
-    -- 7. Return the new ID to the caller
+    -- A. Thêm dữ liệu vào PHIEUTRAPHONG
+    INSERT INTO PHIEUTRAPHONG (MaPhieuTra, NgayTraPhong, TinhTrangHD, MaPhieuDatCoc, MaNV)
+    VALUES (@MaPhieuTra, CAST(@NgayTraPhong AS DATE), @TinhTrangHD, @MaPhieuDatCoc, @MaNV);
+
+    -- B. Cập nhật trạng thái phiếu đặt cọc
+    UPDATE PHIEUDATCOC
+    SET TrangThai = N'Đã trả phòng'
+    WHERE MaPhieuDatCoc = @MaPhieuDatCoc;
+
+    -- C. Giải phóng PHÒNG thành 'Trống'
+    DECLARE @MaPhong VARCHAR(50);
+    SELECT @MaPhong = MaPhong FROM PHIEUDATCOC WHERE MaPhieuDatCoc = @MaPhieuDatCoc;
+
+    IF @MaPhong IS NOT NULL
+    BEGIN
+        UPDATE PHONG
+        SET TrangThai = N'Trống'
+        WHERE MaPhong = @MaPhong;
+    END
+
+    -- D. Giải phóng GIƯỜNG thành 'Trống' (Nếu khách cọc giường KTX)
+    UPDATE GIUONG
+    SET TrangThai = N'Trống'
+    WHERE MaGiuong IN (
+        SELECT MaGiuong FROM CHITIETDATCOC WHERE MaPhieuDatCoc = @MaPhieuDatCoc
+    );
+
+    -- Trả mã PTP về cho Node.js
     SELECT @MaPhieuTra AS MaPhieuTra;
 END;
 GO
