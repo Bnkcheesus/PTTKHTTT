@@ -20,7 +20,6 @@ const TraPhong = () => {
     const [filterMaHD, setFilterMaHD] = useState('');
     const [filterTenKhach, setFilterTenKhach] = useState('');
     const [filterMaPhong, setFilterMaPhong] = useState('');
-    const [filterSDT, setFilterSDT] = useState('');
     const [filteredContracts, setFilteredContracts] = useState([]);
 
     useEffect(() => {
@@ -45,8 +44,7 @@ const TraPhong = () => {
             const matchHD = !filterMaHD || (c.MaHopDong || '').toLowerCase().includes(filterMaHD.toLowerCase());
             const matchTen = !filterTenKhach || (c.HoTen || '').toLowerCase().includes(filterTenKhach.toLowerCase());
             const matchPhong = !filterMaPhong || (c.MaPhong || '').toLowerCase().includes(filterMaPhong.toLowerCase());
-            const matchSDT = !filterSDT || (c.SDT || '').includes(filterSDT);
-            return matchHD && matchTen && matchPhong && matchSDT;
+            return matchHD && matchTen && matchPhong;
         });
         setFilteredContracts(result);
     };
@@ -183,25 +181,19 @@ const TraPhong = () => {
                                     value={filterMaHD}
                                     onChange={(e) => setFilterMaHD(e.target.value)}
                                     placeholder="Mã hợp đồng"
-                                    className="p-2 border-r border-gray-400 w-1/4 outline-none text-xs"
+                                    className="p-2 border-r border-gray-400 w-1/3 outline-none text-xs"
                                 />
                                 <input
                                     value={filterTenKhach}
                                     onChange={(e) => setFilterTenKhach(e.target.value)}
                                     placeholder="Tên khách"
-                                    className="p-2 border-r border-gray-400 w-1/4 outline-none text-xs"
+                                    className="p-2 border-r border-gray-400 w-1/3 outline-none text-xs"
                                 />
                                 <input
                                     value={filterMaPhong}
                                     onChange={(e) => setFilterMaPhong(e.target.value)}
                                     placeholder="Mã phòng"
-                                    className="p-2 border-r border-gray-400 w-1/4 outline-none text-xs"
-                                />
-                                <input
-                                    value={filterSDT}
-                                    onChange={(e) => setFilterSDT(e.target.value)}
-                                    placeholder="SDT"
-                                    className="p-2 w-1/4 outline-none text-xs"
+                                    className="p-2 border-r border-gray-400 w-1/3 outline-none text-xs"
                                 />
                                 <button
                                     onClick={handleSearch}
@@ -220,8 +212,8 @@ const TraPhong = () => {
                                             <th className="p-2 border-r border-b border-gray-300 text-left font-semibold">Mã HĐ</th>
                                             <th className="p-2 border-r border-b border-gray-300 text-left font-semibold">Tên khách</th>
                                             <th className="p-2 border-r border-b border-gray-300 text-left font-semibold">Mã phòng</th>
-                                            <th className="p-2 border-r border-b border-gray-300 text-left font-semibold">SDT</th>
                                             <th className="p-2 border-r border-b border-gray-300 text-left font-semibold">Ngày bắt đầu</th>
+                                            <th className="p-2 border-r border-b border-gray-300 text-left font-semibold">Ngày kết thúc</th>
                                             <th className="p-2 border-b border-gray-300 text-center font-semibold">Chọn</th>
                                         </tr>
                                     </thead>
@@ -250,9 +242,11 @@ const TraPhong = () => {
                                                     </td>
                                                     <td className="p-2 border-r border-gray-300">{contract.HoTen}</td>
                                                     <td className="p-2 border-r border-gray-300">{contract.MaPhong}</td>
-                                                    <td className="p-2 border-r border-gray-300">{contract.SDT}</td>
                                                     <td className="p-2 border-r border-gray-300">
                                                         {contract.NgayBatDau ? formatDateForDisplay(contract.NgayBatDau) : <span className="text-gray-400 italic">Không có</span>}
+                                                    </td>
+                                                    <td className="p-2 border-r border-gray-300">
+                                                        {contract.NgayKetThuc ? formatDateForDisplay(contract.NgayKetThuc) : <span className="text-gray-400 italic">Không có</span>}
                                                     </td>
                                                     <td className="p-2 text-center">
                                                         <input

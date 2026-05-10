@@ -208,6 +208,8 @@ END;
 -- SELECT * FROM HOPDONG
 -- DELETE FROM HOPDONG WHERE MAPHIEUDATCOC = 'PDC069'
 
+
+-- Tra PHONG sql
 GO
 CREATE OR ALTER PROCEDURE LayDSPDCDeTraPhong
 AS
@@ -218,10 +220,13 @@ BEGIN
         HD.NgayBatDau, 
         HD.NgayKetThuc, 
         KH.HoTen,
-        PDC.MaPhong -- Lấy thêm mã phòng để frontend tiện hiển thị nếu cần
+        PHONG.MaPhong -- Lấy thêm mã phòng để frontend tiện hiển thị nếu cần
     FROM PHIEUDATCOC PDC 
     JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH 
     LEFT JOIN HOPDONG HD ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+	LEFT JOIN CHITIETDATCOC CTDC ON CTDC.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+	JOIN GIUONG ON CTDC.MaGiuong = GIUONG.MaGiuong
+	JOIN PHONG ON PHONG.MaPhong = GIUONG.MaPhong
     WHERE PDC.TrangThai <> N'Đã trả phòng' -- CHẶN HIỂN THỊ CÁC PHIẾU ĐÃ TRẢ PHÒNG
       AND PDC.MaPhieuDatCoc NOT IN (
           SELECT MaPhieuDatCoc FROM PHIEUTRAPHONG
