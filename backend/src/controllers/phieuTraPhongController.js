@@ -24,28 +24,27 @@ exports.getContractDetail = async (req, res) => {
     }
 };
 
-// Create return voucher
+// Create return voucher or handle refund if rejected
 exports.createReturnVoucher = async (req, res) => {
     try {
-        const { MaPhieuDatCoc, NgayTraPhong, TinhTrangHD, MaNV } = req.body;
+        const { MaPhieuDatCoc, NgayTraPhong, MaNV } = req.body;
 
         // Validation phía client
-        if (!MaPhieuDatCoc || !NgayTraPhong || !TinhTrangHD || !MaNV) {
+        if (!MaPhieuDatCoc || !NgayTraPhong || !MaNV) {
             return res.status(400).json({
-                error: 'Vui lòng điền đầy đủ các trường: MaPhieuDatCoc, NgayTraPhong, TinhTrangHD, MaNV'
+                error: 'Vui lòng điền đầy đủ các trường: MaPhieuDatCoc, NgayTraPhong, MaNV'
             });
         }
 
         const result = await phieuTraPhongModel.createReturnVoucher({
             MaPhieuDatCoc,
             NgayTraPhong,
-            TinhTrangHD,
             MaNV
         });
 
         res.json(result);
     } catch (err) {
-        // Bắt lỗi RAISERROR từ SQL Server (ví dụ: "Phiếu đặt cọc không tồn tại.", "Nhân viên không thuộc bộ phận kinh doanh.")
+        // Bắt lỗi RAISERROR từ SQL Server
         res.status(400).json({ error: err.message });
     }
 };

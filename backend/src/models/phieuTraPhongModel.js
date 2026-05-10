@@ -36,7 +36,7 @@ const getContractDetail = async (MaPhieuDatCoc) => {
 };
 
 // Gọi SP TaoPhieuTraPhong: Tạo phiếu trả phòng mới
-const createReturnVoucher = async ({ MaPhieuDatCoc, NgayTraPhong, TinhTrangHD, MaNV }) => {
+const createReturnVoucher = async ({ MaPhieuDatCoc, NgayTraPhong, MaNV }) => {
     const pool = await poolPromise;
     try {
         // 1. Xử lý chuỗi ngày "sạch" theo định dạng YYYY-MM-DD
@@ -50,22 +50,15 @@ const createReturnVoucher = async ({ MaPhieuDatCoc, NgayTraPhong, TinhTrangHD, M
             }
         }
 
-        // 2. Xử lý escape dấu nháy đơn (') cho Tình Trạng HĐ để không làm hỏng cú pháp SQL khi nối chuỗi
-        const safeTinhTrangHD = TinhTrangHD ? TinhTrangHD.replace(/'/g, "''") : '';
-
-        // 3. NỐI CHUỖI TRỰC TIẾP (RAW QUERY): Bỏ qua hoàn toàn .input()
-        // Cách này đưa câu lệnh thuần túy xuống SQL Server giống y hệt lúc bạn gõ trong SSMS
         const queryStr = `
             EXEC TaoPhieuTraPhong 
                 @MaPhieuDatCoc = '${MaPhieuDatCoc}', 
                 @NgayTraPhong = '${ngayTraSach}', 
-                @TinhTrangHD = N'${safeTinhTrangHD}', 
                 @MaNV = '${MaNV}'
         `;
 
         const result = await pool.request().query(queryStr);
 
-        // 4. Trả ID vừa tạo về cho Controller
         return { 
             success: true, 
             MaPhieuTra: result.recordset[0].MaPhieuTra 
@@ -126,6 +119,42 @@ const getAllReturnVouchers = async () => {
     return result.recordset;
 };
 
+// Hoàn cọc khi khách từ chối ký hợp đồng
+const hoanCocTuChoi = async ({ MaPhieuDatCoc, NgayTraPhong, MaNV }) => {
+    const pool = await poolPromise;
+    try {
+        // 1. Xử lý chuỗi ngày "sạch" theo định dạng YYYY-MM-DD
+        let ngayTraSach = NgayTraPhong;
+        if (NgayTraPhong && typeof NgayTraPhong === 'string') {
+            if (NgayTraPhong.includes('/')) {
+                const [day, month, year] = NgayTraPhong.split('/');
+                ngayTraSach = `${year}-${month}-${day}`;
+            } else if (NgayTraPhong.includes('T')) {
+                ngayTraSach = NgayTraPhong.split('T')[0];
+            }
+        }
+
+        // 2. Gọi SP HoanCocTuChoi
+        const queryStr = `
+            EXEC HoanCocTuChoi 
+                @MaPhieuDatCoc = '${MaPhieuDatCoc}', 
+                @NgayTraPhong = '${ngayTraSach}', 
+                @MaNV = '${MaNV}'
+        `;
+
+        const result = await pool.request().query(queryStr);
+
+        // 3. Trả ID vừa tạo về cho Controller
+        return { 
+            success: true, 
+            MaPhieuTra: result.recordset[0].MaPhieuTra 
+        };
+    } catch (err) {
+        console.error('SQL Error in hoanCocTuChoi:', err.message);
+        throw new Error(err.message); 
+    }
+};
+
 // Xóa phiếu trả phòng
 const deleteReturnVoucher = async (MaPhieuTra) => {
     const pool = await poolPromise;
@@ -138,6 +167,7 @@ module.exports = {
     getContractsForReturn,
     getContractDetail,
     createReturnVoucher,
+    hoanCocTuChoi,
     getReturnVoucherDetail,
     getAllReturnVouchers,
     deleteReturnVoucher

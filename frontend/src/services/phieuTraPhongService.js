@@ -16,11 +16,10 @@ const phieuTraPhongService = {
     },
 
     // Create return voucher
-    createReturnVoucher: async (MaPhieuDatCoc, NgayTraPhong, TinhTrangHD, MaNV) => {
+    createReturnVoucher: async (MaPhieuDatCoc, NgayTraPhong, MaNV) => {
         const res = await axios.post(`${API_URL}/create`, {
             MaPhieuDatCoc,
             NgayTraPhong,
-            TinhTrangHD,
             MaNV
         });
         return res.data;

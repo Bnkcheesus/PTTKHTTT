@@ -214,23 +214,20 @@ GO
 CREATE OR ALTER PROCEDURE LayDSPDCDeTraPhong
 AS
 BEGIN
-    SELECT 
-        PDC.MaPhieuDatCoc, 
-        ISNULL(HD.MaHopDong, N'Không có') AS MaHopDong, 
-        HD.NgayBatDau, 
-        HD.NgayKetThuc, 
+    SELECT
+        PDC.MaPhieuDatCoc,
+        ISNULL(HD.MaHopDong, N'Không có') AS MaHopDong,
+        HD.NgayBatDau,
+        HD.NgayKetThuc,
         KH.HoTen,
-        PHONG.MaPhong -- Lấy thêm mã phòng để frontend tiện hiển thị nếu cần
-    FROM PHIEUDATCOC PDC 
-    JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH 
+        PHONG.MaPhong -- Lấy mã phòng từ quan hệ CHITIETDATCOC -> GIUONG -> PHONG
+    FROM PHIEUDATCOC PDC
+    JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH
     LEFT JOIN HOPDONG HD ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
-	LEFT JOIN CHITIETDATCOC CTDC ON CTDC.MaPhieuDatCoc = PDC.MaPhieuDatCoc
-	JOIN GIUONG ON CTDC.MaGiuong = GIUONG.MaGiuong
-	JOIN PHONG ON PHONG.MaPhong = GIUONG.MaPhong
-    WHERE PDC.TrangThai <> N'Đã trả phòng' -- CHẶN HIỂN THỊ CÁC PHIẾU ĐÃ TRẢ PHÒNG
-      AND PDC.MaPhieuDatCoc NOT IN (
-          SELECT MaPhieuDatCoc FROM PHIEUTRAPHONG
-      )
+    LEFT JOIN CHITIETDATCOC CTDC ON CTDC.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+    LEFT JOIN GIUONG G ON CTDC.MaGiuong = G.MaGiuong
+    LEFT JOIN PHONG ON PHONG.MaPhong = G.MaPhong
+    WHERE PDC.TrangThai <> N'Đã trả phòng'
 END;
 
 GO
@@ -241,7 +238,6 @@ GO
 CREATE OR ALTER PROCEDURE TaoPhieuTraPhong
     @MaPhieuDatCoc VARCHAR(50),
     @NgayTraPhong VARCHAR(20), -- Dùng VARCHAR để "lừa" driver Node.js như cách của bạn
-    @TinhTrangHD NVARCHAR(100),
     @MaNV VARCHAR(50)
 AS
 BEGIN
@@ -273,6 +269,30 @@ BEGIN
 
     SET @MaPhieuTra = 'PTP' + RIGHT('000' + CAST(@NextNum AS VARCHAR(10)), 3);
 
+    DECLARE @TinhTrangHD NVARCHAR(100);
+    DECLARE @NgayKetThuc DATE;
+
+    SELECT TOP 1 @NgayKetThuc = NgayKetThuc
+    FROM HOPDONG
+    WHERE MaPhieuDatCoc = @MaPhieuDatCoc;
+
+    IF @NgayKetThuc IS NULL
+    BEGIN
+        SET @TinhTrangHD = N'Thanh lý đúng hạn';
+    END
+    ELSE IF CAST(@NgayTraPhong AS DATE) < @NgayKetThuc
+    BEGIN
+        SET @TinhTrangHD = N'Trước hạn';
+    END
+    ELSE IF CAST(@NgayTraPhong AS DATE) > @NgayKetThuc
+    BEGIN
+        SET @TinhTrangHD = N'Trễ hạn';
+    END
+    ELSE
+    BEGIN
+        SET @TinhTrangHD = N'Thanh lý đúng hạn';
+    END
+
     -- =========================================================
     -- BẮT ĐẦU CẬP NHẬT DỮ LIỆU
     -- =========================================================
@@ -298,6 +318,75 @@ BEGIN
     END
 
     -- D. Giải phóng GIƯỜNG thành 'Trống' (Nếu khách cọc giường KTX)
+    UPDATE GIUONG
+    SET TrangThai = N'Trống'
+    WHERE MaGiuong IN (
+        SELECT MaGiuong FROM CHITIETDATCOC WHERE MaPhieuDatCoc = @MaPhieuDatCoc
+    );
+
+    -- Trả mã PTP về cho Node.js
+    SELECT @MaPhieuTra AS MaPhieuTra;
+END;
+GO
+
+-- ========================================================================
+-- SP HOÀN CỌC KHI KHÁCH TỪ CHỐI KÝ HỢP ĐỒNG
+-- ========================================================================
+CREATE OR ALTER PROCEDURE HoanCocTuChoi
+    @MaPhieuDatCoc VARCHAR(50),
+    @NgayTraPhong VARCHAR(20),
+    @MaNV VARCHAR(50)
+AS
+BEGIN
+    -- 1. Validate
+    IF NOT EXISTS (SELECT 1 FROM PHIEUDATCOC WHERE MaPhieuDatCoc = @MaPhieuDatCoc)
+    BEGIN
+        RAISERROR(N'Phiếu đặt cọc không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM NV_KDOANH WHERE MaNV = @MaNV)
+    BEGIN
+        RAISERROR(N'Nhân viên không thuộc bộ phận kinh doanh.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM PHIEUTRAPHONG WHERE MaPhieuDatCoc = @MaPhieuDatCoc)
+    BEGIN
+        RAISERROR(N'Phiếu đặt cọc này đã có phiếu trả phòng.', 16, 1);
+        RETURN;
+    END
+
+    -- 2. Tạo mã phiếu trả phòng tự động
+    DECLARE @MaPhieuTra VARCHAR(50);
+    DECLARE @NextNum INT;
+
+    SELECT @NextNum = ISNULL(MAX(CAST(SUBSTRING(MaPhieuTra, 4, 10) AS INT)), 0) + 1
+    FROM PHIEUTRAPHONG;
+
+    SET @MaPhieuTra = 'PTP' + RIGHT('000' + CAST(@NextNum AS VARCHAR(10)), 3);
+
+    -- 3. Thêm vào PHIEUTRAPHONG với TinhTrangHD = 'Từ chối ký hợp đồng'
+    INSERT INTO PHIEUTRAPHONG (MaPhieuTra, NgayTraPhong, TinhTrangHD, MaPhieuDatCoc, MaNV)
+    VALUES (@MaPhieuTra, CAST(@NgayTraPhong AS DATE), N'Từ chối ký hợp đồng', @MaPhieuDatCoc, @MaNV);
+
+    -- 4. Cập nhật trạng thái phiếu đặt cọc
+    UPDATE PHIEUDATCOC
+    SET TrangThai = N'Đã trả phòng'
+    WHERE MaPhieuDatCoc = @MaPhieuDatCoc;
+
+    -- 5. Giải phóng PHÒNG thành 'Trống'
+    DECLARE @MaPhong VARCHAR(50);
+    SELECT @MaPhong = MaPhong FROM PHIEUDATCOC WHERE MaPhieuDatCoc = @MaPhieuDatCoc;
+
+    IF @MaPhong IS NOT NULL
+    BEGIN
+        UPDATE PHONG
+        SET TrangThai = N'Trống'
+        WHERE MaPhong = @MaPhong;
+    END
+
+    -- 6. Giải phóng GIƯỜNG thành 'Trống'
     UPDATE GIUONG
     SET TrangThai = N'Trống'
     WHERE MaGiuong IN (

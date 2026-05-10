@@ -10,7 +10,6 @@ const TraPhong = () => {
     const [contracts, setContracts] = useState([]);
     const [selectedContract, setSelectedContract] = useState(null);
     const [ngayTraPhong, setNgayTraPhong] = useState('');
-    const [tinhTrangHD, setTinhTrangHD] = useState('');
     const [loading, setLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [newVoucherId, setNewVoucherId] = useState('');
@@ -71,9 +70,19 @@ const TraPhong = () => {
             setThongBao({ hienThi: true, noiDung: 'Vui lòng chọn ngày trả phòng', loai: 'error' });
             return;
         }
-        if (!tinhTrangHD.trim()) {
-            setThongBao({ hienThi: true, noiDung: 'Vui lòng nhập tình trạng hợp đồng', loai: 'error' });
-            return;
+
+        // Validate NgayTraPhong không được nhỏ hơn NgayBatDau
+        if (selectedContract.NgayBatDau) {
+            const ngayBatDau = new Date(selectedContract.NgayBatDau);
+            const ngayTra = new Date(ngayTraPhong);
+            if (ngayTra < ngayBatDau) {
+                setThongBao({ 
+                    hienThi: true, 
+                    noiDung: `Ngày trả phòng phải >= ngày bắt đầu (${formatDateForDisplay(selectedContract.NgayBatDau)})`, 
+                    loai: 'error' 
+                });
+                return;
+            }
         }
 
         setLoading(true);
@@ -81,7 +90,6 @@ const TraPhong = () => {
             const result = await phieuTraPhongService.createReturnVoucher(
                 selectedContract.MaPhieuDatCoc,
                 ngayTraPhong,
-                tinhTrangHD,
                 user?.MaNV
             );
 
@@ -100,7 +108,6 @@ const TraPhong = () => {
         setIsSuccess(false);
         setSelectedContract(null);
         setNgayTraPhong('');
-        setTinhTrangHD('');
         setThongBao({ hienThi: false, noiDung: '', loai: '' });
         loadContracts();
     };
@@ -133,7 +140,6 @@ const TraPhong = () => {
                                 <p>Mã phiếu đặt cọc: {selectedContract?.MaPhieuDatCoc}</p>
                                 <p>Mã hợp đồng: {selectedContract?.MaHopDong}</p>
                                 <p>Ngày trả: {formatDateForDisplay(ngayTraPhong)}</p>
-                                <p>Tình trạng: {tinhTrangHD}</p>
                             </div>
 
                             {/* Buttons */}
@@ -268,8 +274,8 @@ const TraPhong = () => {
                             </div>
                         </div>
 
-                        {/* Contract details if selected */}
-                        {selectedContract && (
+                        {/* Contract details if selected - REMOVED */}
+                        {false && selectedContract && (
                             <div>
                                 <h2 className="font-bold mb-4">Chi tiết phiếu đặt cọc</h2>
                                 <div className="p-4 rounded shadow-sm" style={{ backgroundColor: '#f5f5f5' }}>
@@ -329,24 +335,6 @@ const TraPhong = () => {
                                     onChange={(e) => setNgayTraPhong(e.target.value)}
                                     className="w-full border-b-2 border-gray-800 bg-transparent outline-none text-xs p-1"
                                 />
-                            </div>
-
-                            {/* Contract condition */}
-                            <div className="mb-8">
-                                <label className="block text-sm font-bold text-gray-800 mb-3">
-                                    Tình trạng hợp đồng
-                                </label>
-                                <textarea
-                                    value={tinhTrangHD}
-                                    onChange={(e) => setTinhTrangHD(e.target.value.slice(0, 200))}
-                                    placeholder="Nhập tình trạng..."
-                                    maxLength="200"
-                                    rows="4"
-                                    className="w-full p-2 border border-gray-400 bg-white outline-none text-xs resize-none"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {tinhTrangHD.length}/200
-                                </p>
                             </div>
 
                             {/* Buttons */}
