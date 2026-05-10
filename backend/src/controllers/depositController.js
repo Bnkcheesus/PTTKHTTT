@@ -1,3 +1,36 @@
+const DepositModel = require('../models/depositModel');
+
+exports.getPendingRequest = async (req, res) => {
+    try {
+        const data = await DepositModel.getPendingRequestByCCCD(req.params.cccd);
+        if (!data) return res.status(404).json({ message: "Không tìm thấy yêu cầu thuê." });
+        res.json(data);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.confirmRental = async (req, res) => {
+    try {
+        const maPDC = await DepositModel.createDeposit(req.body);
+        res.json({ success: true, maPDC });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.getDepositInfo = async (req, res) => {
+    try {
+        const data = await DepositModel.getDepositInfoByCCCD(req.params.cccd);
+        if (!data) return res.status(404).json({ message: "Không tìm thấy thông tin đặt cọc." });
+        res.json(data);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.processPayment = async (req, res) => {
+    try {
+        const { maPDC, hinhThuc } = req.body;
+        await DepositModel.updatePaymentStatus(maPDC, hinhThuc);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
 exports.getPaid = async (req, res) => {
     try {
         const data = await hopDongModel.getPaidDepositsNoContract();

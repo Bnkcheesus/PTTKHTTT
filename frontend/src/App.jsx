@@ -13,6 +13,9 @@ import RoomRegistration from './pages/saleEmployee/RoomRegistration';
 import AppointmentScheduling from './pages/saleEmployee/AppointmentScheduling';
 import LapHopDong from './pages/saleEmployee/LapHopDong';
 import TraPhong from './pages/saleEmployee/TraPhong';
+import XacNhanThue from './pages/saleEmployee/XacNhanThue';
+import ThanhToanCoc from './pages/saleEmployee/ThanhToanCoc';
+
 
 // Import Login
 import Login from './pages/Login';
@@ -107,6 +110,8 @@ function App() {
                             <AppointmentScheduling />
                         </ProtectedRoute>
                     } />
+                    <Route path="/xac-nhan-thue" element={<ProtectedRoute allowedRoles={['Sales']}><XacNhanThue /></ProtectedRoute>} />
+                    <Route path="/thanh-toan-coc" element={<ProtectedRoute allowedRoles={['Sales']}><ThanhToanCoc /></ProtectedRoute>} />
                     <Route path="/lap-hop-dong" element={
                         <ProtectedRoute allowedRoles={['Sales']}>
                             <LapHopDong />
