@@ -195,6 +195,141 @@ BEGIN
 	DELETE FROM BIENBAN WHERE MaHopDong = @MaHD;
 END;
 
+GO
+
+CREATE OR ALTER PROCEDURE LayDS_ChoKiemTra
+AS
+BEGIN
+    SELECT DISTINCT
+        PTR.MaPhieuTra,
+        HD.MaHopDong,
+        PDC.MaPhieuDatCoc,
+        KH.HoTen,
+        P.MaPhong,
+        HD.NgayBatDau,
+        HD.NgayKetThuc
+    FROM PHIEUTRAPHONG PTR
+    JOIN PHIEUDATCOC PDC ON PTR.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+    JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH
+    JOIN HOPDONG HD ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+    LEFT JOIN PHONG P ON PDC.MaPhong = P.MaPhong
+    LEFT JOIN PHIEUKIEMTRA PKT ON PKT.MaPhieuTra = PTR.MaPhieuTra
+    WHERE PTR.MaPhieuTra IS NOT NULL
+      AND PKT.MaPhieuKiemTra IS NULL;
+END;
+
+GO
+
+CREATE OR ALTER PROCEDURE LayThongTinBanGiao_TuHopDong
+    @MaHopDong VARCHAR(50)
+AS
+BEGIN
+    SELECT
+        HD.MaHopDong,
+        PDC.MaPhieuDatCoc,
+        PTR.MaPhieuTra,
+        P.MaPhong,
+        P.GiaThuePhong,
+        KH.HoTen,
+        KH.SDT,
+        KH.Email,
+        HD.NgayBatDau,
+        HD.NgayKetThuc
+    FROM HOPDONG HD
+    JOIN PHIEUDATCOC PDC ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+    JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH
+    LEFT JOIN PHONG P ON PDC.MaPhong = P.MaPhong
+    LEFT JOIN PHIEUTRAPHONG PTR ON PTR.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+    WHERE HD.MaHopDong = @MaHopDong;
+END;
+
+GO
+
+CREATE OR ALTER PROCEDURE LapPhieuKiemTra
+    @MaPhieuKiemTra VARCHAR(50) = NULL,
+    @MaPhieuTra VARCHAR(50) = NULL,
+    @SoDienDung FLOAT = 0,
+    @SoNuocDung FLOAT = 0,
+    @TienThueNo DECIMAL(18,2),
+    @TienPhat DECIMAL(18,2),
+    @MaNV VARCHAR(50)
+AS
+BEGIN
+    IF @TienThueNo < 0
+    BEGIN
+        RAISERROR(N'Tiền thuê nợ phải lớn hơn hoặc bằng 0.', 16, 1);
+        RETURN;
+    END
+
+    IF @TienPhat < 0
+    BEGIN
+        RAISERROR(N'Tiền phạt phải lớn hơn hoặc bằng 0.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM NV_QLY WHERE MaNV = @MaNV)
+    BEGIN
+        RAISERROR(N'Nhân viên không thuộc bộ phận quản lý.', 16, 1);
+        RETURN;
+    END
+
+    IF @MaPhieuTra IS NULL
+    BEGIN
+        RAISERROR(N'Mã phiếu trả phòng chưa được xác định.', 16, 1);
+        RETURN;
+    END
+
+    IF @MaPhieuKiemTra IS NULL
+    BEGIN
+        DECLARE @NextNum INT;
+        SELECT @NextNum = ISNULL(MAX(CAST(SUBSTRING(MaPhieuKiemTra, 4, 10) AS INT)), 0) + 1
+        FROM PHIEUKIEMTRA;
+
+        SET @MaPhieuKiemTra = 'PKT' + RIGHT('000' + CAST(@NextNum AS VARCHAR(10)), 3);
+    END
+    ELSE IF EXISTS (SELECT 1 FROM PHIEUKIEMTRA WHERE MaPhieuKiemTra = @MaPhieuKiemTra)
+    BEGIN
+        RAISERROR(N'Mã phiếu kiểm tra đã tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO PHIEUKIEMTRA (MaPhieuKiemTra, SoDienDung, SoNuocDung, TienThueNo, TienPhat, MaPhieuTra, MaNV)
+    VALUES (@MaPhieuKiemTra, @SoDienDung, @SoNuocDung, @TienThueNo, @TienPhat, @MaPhieuTra, @MaNV);
+
+    SELECT @MaPhieuKiemTra AS MaPhieuKiemTra;
+END;
+
+GO
+
+CREATE OR ALTER PROCEDURE ThemChiTietKiemTra
+    @MaPhieuKiemTra VARCHAR(50),
+    @MaThietBi VARCHAR(50),
+    @SoLuongHuHong INT
+AS
+BEGIN
+    IF @SoLuongHuHong < 0
+    BEGIN
+        RAISERROR(N'Số lượng hư hỏng phải lớn hơn hoặc bằng 0.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM PHIEUKIEMTRA WHERE MaPhieuKiemTra = @MaPhieuKiemTra)
+    BEGIN
+        RAISERROR(N'Phiếu kiểm tra không tồn tại.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM CHITIETKIEMTRA WHERE MaPhieuKiemTra = @MaPhieuKiemTra AND MaThietBi = @MaThietBi)
+    BEGIN
+        RAISERROR(N'Thiết bị đã được thêm vào phiếu kiểm tra.', 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO CHITIETKIEMTRA (MaPhieuKiemTra, MaThietBi, SoLuongHuHong)
+    VALUES (@MaPhieuKiemTra, @MaThietBi, @SoLuongHuHong);
+END;
+
+GO
 
 -- INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc, MaKH, MaNV) VALUES ('PDC1000', '2025-02-12', N'Cọc giữ chỗ', N'Đã thanh toán', 3500000, 'KH099', 'NV005');
 -- SELECT * FROM PHIEUDATCOC WHERE MaPhieuDatCoc = 'PDC1000'

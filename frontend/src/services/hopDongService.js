@@ -25,6 +25,11 @@ const hopDongService = {
     getContractList: async () => {
         const res = await axios.get(`${API_URL}/list`);
         return res.data;
+    },
+
+    getEquipmentList: async () => {
+        const res = await axios.get(`${API_URL}/equipment/list`);
+        return res.data;
     }
 };
 
