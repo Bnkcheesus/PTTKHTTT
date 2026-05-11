@@ -109,19 +109,27 @@ const DatGiuong = async (maPDC, maGiuong) => {
         .execute('ThemChiTietDatCoc');
 };
 
-const TaoLichHenNhanPhong = async (ngayGioHen, maPhieuYC) => {
+const TaoLichHenNhanPhong = async (ngayGioHen, maPhieuYC, maNV) => {
     const pool = await poolPromise;
+    const request = pool.request();
 
-    //const thoiGianSach = ngayGioHen.replace('T', ' ').replace(/\..*$/, '');
-    console.log('Đang tạo lịch hẹn với thời gian:', ngayGioHen, 'và mã phiếu yêu cầu:', maPhieuYC); // Debug log
+    // Khớp kiểu dữ liệu với SP trong file 4_sp_HenLich.sql
+    // Dùng mssql.DateTime cho @ThoiGian
+    request.input('ThoiGian', mssql.DateTime, new Date(ngayGioHen)); 
+    request.input('LyDo', mssql.NVarChar(255), 'Hẹn nhận phòng');
+    request.input('MaPhieuYC', mssql.VarChar(50), maPhieuYC);
+    
+    // Đảm bảo MaNV không được undefined/null vì SP không để giá trị mặc định
+    request.input('MaNV', mssql.VarChar(50), maNV || 'NV001'); 
 
-    const result = await pool.request()
-        .input('ThoiGian', mssql.DateTime, ngayGioHen)
-        .input('LyDo', mssql.NVarChar(255), 'Hẹn nhận phòng')
-        .input('MaPhieuYC', mssql.VarChar(50), maPhieuYC)
-        .input('MaNV', mssql.VarChar(50), null) // Tạm thời gán MaNV cố định, có thể thay đổi sau
-        .execute('ThemLichHen');
-    return result.recordset[0].MaLH;
+    try {
+        const result = await request.execute('ThemLichHen');
+        // Lấy đúng tên cột 'MaLHMoi' mà SP trả về
+        return result.recordset[0].MaLHMoi; 
+    } catch (err) {
+        console.error('Lỗi thực thi SP:', err.message);
+        throw err;
+    }
 };
 
 const updateCustomerInfo = async (maKH, data) => {

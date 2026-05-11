@@ -1027,8 +1027,7 @@ INSERT INTO HOADON (MaHD, LoaiHoaDon, SoTien, NgayThanhToan, MaPhieuTra) VALUES 
 INSERT INTO HOADON (MaHD, LoaiHoaDon, SoTien, NgayThanhToan, MaPhieuTra) VALUES ('HDON049', N'Thanh toán đợt cuối', 400000, '2024-06-15', 'PTP049');
 INSERT INTO HOADON (MaHD, LoaiHoaDon, SoTien, NgayThanhToan, MaPhieuTra) VALUES ('HDON050', N'Thanh toán đợt cuối', 700000, '2024-05-08', 'PTP050');
 
-
--- Cập nhật trạng thái phòng thành 'Đã cho thuê' nếu tất cả giường đều đã có người
+-- Cập nhật phòng thành 'Đã cho thuê' nếu không còn giường trống nào
 UPDATE PHONG
 SET TrangThai = N'Đã cho thuê'
 WHERE MaPhong IN (

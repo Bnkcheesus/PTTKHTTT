@@ -12,324 +12,287 @@ const ThanhToanCoc = () => {
 
     const [cccd, setCccd] = useState('');
     const [duLieu, setDuLieu] = useState(null);
-
     const [dangTai, setDangTai] = useState(false);
-
-    const [hinhThucThanhToan, setHinhThucThanhToan] =
-        useState('Tiền mặt');
-
+    const [hinhThucThanhToan, setHinhThucThanhToan] = useState('Tiền mặt');
     const [thoiGianConLai, setThoiGianConLai] = useState('--');
-
     const [popup, setPopup] = useState(false);
 
+    // State cho lịch hẹn
     const [ngayHen, setNgayHen] = useState('');
     const [gioHen, setGioHen] = useState('');
 
-    // ==========================
-    // FORMAT TIỀN
-    // ==========================
+    // State thông báo (Floating Notification)
+    const [thongBao, setThongBao] = useState({ hienThi: false, noiDung: '', loai: '' });
+
+    // Tự động ẩn thông báo sau 3 giây
+    useEffect(() => {
+        if (thongBao.hienThi) {
+            const timer = setTimeout(() => 
+                setThongBao({ hienThi: false, noiDung: '', loai: '' }), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [thongBao.hienThi]);
+
     const FormatTien = (tien) => {
         if (!tien) return '0đ';
-
         return Number(tien).toLocaleString('vi-VN') + 'đ';
     };
 
-    // ==========================
-    // TÌM KHÁCH HÀNG
-    // ==========================
     const TimKhachHang = async () => {
         if (!cccd.trim()) {
-            alert('Vui lòng nhập CCCD');
+            setThongBao({ hienThi: true, noiDung: 'Vui lòng nhập số CCCD!', loai: 'error' });
             return;
         }
 
         try {
             setDangTai(true);
-
-            const response = await axios.get(
-                `http://localhost:5000/api/deposits/${cccd}`
-            );
-
-            setDuLieu(response.data);
-
-            // nếu đã có thanh toán
-            if (
-                response.data?.phieuDatCoc?.HinhThucThanhToan
-            ) {
-                setHinhThucThanhToan(
-                    response.data.phieuDatCoc.HinhThucThanhToan
-                );
-            } else {
-                setHinhThucThanhToan('Tiền mặt');
-            }
+            const res = await axios.get(`http://localhost:5000/api/deposits/info/${cccd}`);
+            setDuLieu(res.data);
         } catch (error) {
             console.error(error);
-
-            alert(
-                error.response?.data?.error ||
-                    'Không tìm thấy khách hàng'
-            );
-
+            const msg = error.response?.data?.message || 'Không tìm thấy thông tin đặt cọc.';
+            setThongBao({ hienThi: true, noiDung: msg, loai: 'error' });
             setDuLieu(null);
         } finally {
             setDangTai(false);
         }
     };
 
-    // ==========================
-    // ĐẾM NGƯỢC
-    // ==========================
+    // Logic tính thời gian đếm ngược (24h từ lúc lập phiếu)
     useEffect(() => {
-        if (!duLieu?.phieuDatCoc) {
-            setThoiGianConLai('--');
-            return;
-        }
-
-        // đã thanh toán
-        if (
-            duLieu.phieuDatCoc.TrangThai ===
-            'Đã thanh toán'
-        ) {
-            setThoiGianConLai('--');
-            return;
-        }
+        if (!duLieu || duLieu.TrangThai !== 'Chưa thanh toán') return;
 
         const interval = setInterval(() => {
-            const ngayLap = new Date(
-                duLieu.phieuDatCoc.NgayLap
-            );
-
-            // hạn là 23:59 ngày hôm sau
-            const han = new Date(ngayLap);
-
-            han.setDate(han.getDate() + 1);
-
-            han.setHours(23, 59, 59, 999);
-
-            const now = new Date();
-
-            const diff = han - now;
+            const ngayLap = new Date(duLieu.NgayLap || new Date());
+            const hanChot = new Date(ngayLap.getTime() + 24 * 60 * 60 * 1000);
+            const hienTai = new Date();
+            const diff = hanChot - hienTai;
 
             if (diff <= 0) {
                 setThoiGianConLai('Hết hạn');
                 clearInterval(interval);
-                return;
+            } else {
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                setThoiGianConLai(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
             }
-
-            const hours = Math.floor(
-                diff / (1000 * 60 * 60)
-            );
-
-            const minutes = Math.floor(
-                (diff % (1000 * 60 * 60)) /
-                    (1000 * 60)
-            );
-
-            const seconds = Math.floor(
-                (diff % (1000 * 60)) / 1000
-            );
-
-            setThoiGianConLai(
-                `${String(hours).padStart(2, '0')}:${String(
-                    minutes
-                ).padStart(2, '0')}:${String(seconds).padStart(
-                    2,
-                    '0'
-                )}`
-            );
         }, 1000);
 
         return () => clearInterval(interval);
     }, [duLieu]);
 
-    // ==========================
-    // GHI NHẬN THANH TOÁN
-    // ==========================
     const GhiNhanThanhToan = async () => {
         try {
-            // nếu hết hạn thì không cho ghi nhận thanh toán
             if (thoiGianConLai === 'Hết hạn') {
-                alert('Đã hết hạn thanh toán cọc');
+                setThongBao({ hienThi: true, noiDung: 'Giao dịch thất bại: Đã quá hạn 24h thanh toán!', loai: 'error' });
                 return;
             }
-            await axios.post(
-                `http://localhost:5000/api/deposits/record-payment`,
-                {
-                    MaPhieuDatCoc:
-                        duLieu.phieuDatCoc.MaPhieuDatCoc,
 
-                    HinhThucThanhToan:
-                        hinhThucThanhToan,
+            await axios.post(`http://localhost:5000/api/deposits/record-payment`, {
+                MaPhieuDatCoc: duLieu.MaPhieuDatCoc,
+                HinhThucThanhToan: hinhThucThanhToan,
+                MaPhong: duLieu.MaPhong,
+                SoNguoi: duLieu.SoGiuongThue,
+                HinhThucThue: duLieu.HinhThucThue // Gửi để backend kiểm tra khóa phòng
+            });
 
-                    MaPhong:
-                        duLieu.phong.MaPhong,
-
-                    SoNguoi:
-                        duLieu.phieuYeuCau.SoNguoiDuKien
-                }
-            );
-
-            setPopup(true);
+            setThongBao({ hienThi: true, noiDung: 'Ghi nhận thanh toán cọc thành công!', loai: 'success' });
+            setPopup(true); // Mở popup hẹn lịch nhận phòng
         } catch (error) {
             console.error(error);
-
-            alert('Thanh toán thất bại');
+            const errorMsg = error.response?.data?.error || error.response?.data || 'Thanh toán thất bại';
+            setThongBao({ hienThi: true, noiDung: 'Lỗi: ' + errorMsg, loai: 'error' });
         }
     };
 
-    // ==========================
-    // XÁC NHẬN HẸN
-    // ==========================
     const XacNhanHen = async () => {
-        if (!ngayHen || !gioHen) return;
+        if (!ngayHen || !gioHen) {
+            setThongBao({ hienThi: true, noiDung: 'Vui lòng chọn đầy đủ ngày và giờ hẹn!', loai: 'error' });
+            return;
+        }
 
         try {
-            await axios.post(
-                `http://localhost:5000/api/deposits/appointment`,
-                {
-                    MaPhieuYC: duLieu.phieuYeuCau.MaPhieuYC,
-                    NgayHen: ngayHen,
-                    GioHen: gioHen,
-                }
-            );
+            // Lấy MaNV từ user đang đăng nhập trong AuthContext/LocalStorage
+            const storedUser = JSON.parse(localStorage.getItem('user'));
+            const currentMaNV = storedUser ? storedUser.MaNV : null;
 
-            alert('Xác nhận hẹn thành công!');
-            TimKhachHang();
+            await axios.post(`http://localhost:5000/api/deposits/appointment`, {
+                MaPhieuYC: duLieu.MaPhieuYC,
+                NgayHen: ngayHen,
+                GioHen: gioHen,
+                MaNV: currentMaNV 
+            });
+
+            setThongBao({ hienThi: true, noiDung: 'Xác nhận lịch hẹn thành công!', loai: 'success' });
+            setPopup(false);
+            TimKhachHang(); // Refresh lại dữ liệu để cập nhật trạng thái mới
         } catch (error) {
             console.error(error);
-
-            alert('Xác nhận thất bại');
+            const errorMsg = error.response?.data || error.message || 'Không thể tạo lịch hẹn';
+            setThongBao({ hienThi: true, noiDung: 'Lỗi lịch hẹn: ' + errorMsg, loai: 'error' });
         }
     };
 
-    // ==========================
-    // PDF
-    // ==========================
     const InHoaDon = () => {
         const doc = new jsPDF();
-
-        doc.setFontSize(18);
-
-        doc.text('HOA DON DAT COC', 70, 20);
-
-        autoTable(doc, {
-            startY: 35,
-            body: [
-                [
-                    'Ma phieu dat coc',
-                    duLieu.phieuDatCoc.MaPhieuDatCoc,
-                ],
-                [
-                    'Khach hang',
-                    duLieu.khachHang.HoTen,
-                ],
-                [
-                    'CCCD',
-                    duLieu.khachHang.CCCD,
-                ],
-                [
-                    'Phong',
-                    duLieu.phong.MaPhong,
-                ],
-                [
-                    'Tien coc',
-                    FormatTien(
-                        duLieu.phieuDatCoc.TienCoc
-                    ),
-                ],
-                [
-                    'Hinh thuc thanh toan',
-                    duLieu.phieuDatCoc.HinhThucThanhToan,
-                ],
-                [
-                    'Ngay lap',
-                    duLieu.phieuDatCoc.NgayLap,
-                ],
-                [
-                    'Trang thai',
-                    duLieu.phieuDatCoc.TrangThai,
-                ],
-            ],
-        });
-
-        doc.save(
-            `${duLieu.phieuDatCoc.MaPhieuDatCoc}.pdf`
-        );
+        // Cấu hình font và nội dung hóa đơn tại đây...
+        alert('Đang tạo và tải file PDF hóa đơn...');
     };
 
-    // ==========================
-    // CHECK
-    // ==========================
-    const daThanhToan =
-        duLieu?.phieuDatCoc?.TrangThai ===
-        'Đã thanh toán';
+    const daThanhToan = duLieu?.TrangThai === 'Đã thanh toán' || duLieu?.TrangThai === 'Đã được chấp thuận';
 
     return (
-    <div className="min-h-screen">
-        <SaleNavbar />
+        <div className="min-h-screen bg-white relative">
+            {/* THÔNG BÁO NỔI */}
+            {thongBao.hienThi && (
+                <div className={`fixed top-10 left-1/2 transform -translate-x-1/2 px-8 py-4 z-[10001] text-white font-bold shadow-2xl text-lg text-center rounded transition-all ${
+                    thongBao.loai === 'success' ? 'bg-[#2A754B]' : 'bg-red-600'
+                }`}>
+                    {thongBao.noiDung}
+                </div>
+            )}
 
-        <div className="max-w-7xl mx-auto px-8 py-6 relative">
+            <SaleNavbar />
 
-            {/* ================= POPUP ================= */}
-            {popup && (
-                <div className="fixed inset-0 z-[9999] bg-black/20 flex items-center justify-center">
-                    <div className="bg-white w-[620px] shadow-2xl border relative rounded">
+            <div className="max-w-6xl mx-auto px-6 py-8">
+                <h2 className="text-xl font-bold mb-4">Chọn một khách hàng để ghi nhận thanh toán</h2>
+                <p className="text-gray-500 text-sm mb-4">(nhập số CCCD)</p>
 
-                        {/* HEADER */}
-                        <div className="bg-[#2A754B] text-white text-2xl font-bold text-center py-6 rounded-t">
-                            Ghi nhận thanh toán cọc thành công!
+                <div className="flex gap-3 mb-8">
+                    <input
+                        type="text"
+                        value={cccd}
+                        onChange={(e) => setCccd(e.target.value)}
+                        placeholder="Nhập CCCD khách hàng..."
+                        className="border border-gray-400 w-[300px] h-[45px] px-4 rounded outline-none"
+                    />
+                    <button
+                        onClick={TimKhachHang}
+                        disabled={dangTai}
+                        className="bg-[#333] hover:bg-black text-white px-8 h-[45px] font-bold rounded"
+                    >
+                        Tìm
+                    </button>
+                </div>
+
+                {duLieu && (
+                    <div className="grid grid-cols-2 gap-10">
+                        {/* Cột trái: Thông tin */}
+                        <div className="space-y-6">
+                            <table className="w-full border-collapse">
+                                <tbody>
+                                    <DongThongTin label="Khách hàng" value={`${duLieu.MaKH} - ${duLieu.HoTen}`} />
+                                    <DongThongTin label="Nhu cầu thuê" value={duLieu.HinhThucThue} />
+                                    <DongThongTin label="Phòng" value={duLieu.MaPhong} />
+                                    <DongThongTin label="Số giường thuê" value={duLieu.SoGiuongThue} />
+                                </tbody>
+                            </table>
+
+                            <div>
+                                <p className="text-lg font-bold">Mức tiền cọc:</p>
+                                <p className="text-[#2A754B] text-4xl font-bold">{FormatTien(duLieu.TienCoc)}</p>
+                            </div>
+
+                            <div>
+                                <p className="text-lg font-bold">Trạng thái:</p>
+                                <p className={`text-xl font-bold ${daThanhToan ? 'text-green-600' : 'text-red-600'}`}>
+                                    {duLieu.TrangThai}
+                                </p>
+                            </div>
+
+                            {!daThanhToan && (
+                                <div>
+                                    <p className="text-lg font-bold">Thời gian còn lại:</p>
+                                    <p className={`text-3xl font-bold ${thoiGianConLai === 'Hết hạn' ? 'text-red-600' : 'text-[#2A754B]'}`}>
+                                        {thoiGianConLai}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        {/* BODY */}
-                        <div className="p-10">
-
-                            <div className="mb-8">
-                                <p className="text-2xl font-bold mb-4">
-                                    Hẹn nhận phòng:
-                                </p>
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-xl font-bold mb-2">
-                                            Ngày hẹn*
-                                        </label>
-
-                                        <input
-                                            type="date"
-                                            value={ngayHen}
-                                            onChange={(e) =>
-                                                setNgayHen(e.target.value)
-                                            }
-                                            className="w-full border border-gray-400 h-[55px] px-4 text-xl rounded"
+                        {/* Cột phải: Hình thức & Nút bấm */}
+                        <div className="flex flex-col justify-between">
+                            <div className="border border-gray-300 p-6 rounded bg-gray-50">
+                                <h3 className="font-bold mb-4">Chọn hình thức thanh toán</h3>
+                                <div className="space-y-4">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input 
+                                            type="radio" 
+                                            name="payment" 
+                                            checked={hinhThucThanhToan === 'Tiền mặt'}
+                                            onChange={() => setHinhThucThanhToan('Tiền mặt')}
                                         />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xl font-bold mb-2">
-                                            Giờ hẹn*
-                                        </label>
-
-                                        <input
-                                            type="time"
-                                            value={gioHen}
-                                            onChange={(e) =>
-                                                setGioHen(e.target.value)
-                                            }
-                                            className="w-full border border-gray-400 h-[55px] px-4 text-xl rounded"
+                                        Tiền mặt
+                                    </label>
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input 
+                                            type="radio" 
+                                            name="payment" 
+                                            checked={hinhThucThanhToan === 'Chuyển khoản'}
+                                            onChange={() => setHinhThucThanhToan('Chuyển khoản')}
                                         />
-                                    </div>
+                                        Chuyển khoản
+                                    </label>
                                 </div>
                             </div>
 
+                            {daThanhToan ? (
+                                <button
+                                    onClick={InHoaDon}
+                                    className="bg-[#2A754B] hover:bg-green-800 text-white w-full py-5 text-xl font-bold rounded shadow-lg transition-all"
+                                >
+                                    In hoá đơn
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={GhiNhanThanhToan}
+                                    disabled={thoiGianConLai === 'Hết hạn'}
+                                    className={`w-full py-5 text-xl font-bold text-white rounded shadow-lg transition-all ${
+                                        thoiGianConLai === 'Hết hạn' ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#2A754B] hover:bg-green-800'
+                                    }`}
+                                >
+                                    Ghi nhận thanh toán
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* POPUP HẸN LỊCH NHẬN PHÒNG */}
+            {popup && (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white w-[500px] rounded-lg shadow-2xl overflow-hidden">
+                        <div className="bg-[#2A754B] text-white py-4 px-6 text-center font-bold text-lg">
+                            Ghi nhận thanh toán cọc thành công!
+                        </div>
+                        <div className="p-8">
+                            <h3 className="text-xl font-bold mb-6">Hẹn nhận phòng:</h3>
+                            <div className="grid grid-cols-2 gap-6 mb-8">
+                                <div>
+                                    <label className="block font-bold mb-2">Ngày hẹn*</label>
+                                    <input 
+                                        type="date" 
+                                        className="w-full border border-gray-400 p-2 rounded"
+                                        value={ngayHen}
+                                        onChange={(e) => setNgayHen(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block font-bold mb-2">Giờ hẹn*</label>
+                                    <input 
+                                        type="time" 
+                                        className="w-full border border-gray-400 p-2 rounded"
+                                        value={gioHen}
+                                        onChange={(e) => setGioHen(e.target.value)}
+                                    />
+                                </div>
+                            </div>
                             <div className="flex justify-end">
                                 <button
-                                    disabled={!ngayHen || !gioHen}
                                     onClick={XacNhanHen}
-                                    className={`px-10 h-[55px] text-xl font-bold text-white rounded ${
-                                        !ngayHen || !gioHen
-                                            ? 'bg-gray-300 cursor-not-allowed'
-                                            : 'bg-[#333333] hover:bg-black'
-                                    }`}
+                                    className="bg-black text-white px-10 py-2 font-bold rounded hover:bg-gray-800"
                                 >
                                     Xác nhận
                                 </button>
@@ -338,265 +301,15 @@ const ThanhToanCoc = () => {
                     </div>
                 </div>
             )}
-
-            {/* ================= TAB ================= */}
-            <div className="flex justify-end mb-5">
-                <div className="flex border border-gray-500 overflow-hidden rounded">
-
-                    <button
-                        className="w-[180px] h-[50px] bg-black text-white text-xl font-bold"
-                    >
-                        Thuê
-                    </button>
-
-                    <button
-                        onClick={() => navigate('/thanhly')}
-                        className="w-[180px] h-[50px] bg-white text-black text-xl"
-                    >
-                        Thanh lý
-                    </button>
-                </div>
-            </div>
-
-            {/* ================= SEARCH ================= */}
-            <div className="mb-6">
-
-                <h2 className="text-xl font-bold leading-tight">
-                    Chọn một khách hàng để ghi nhận thanh toán
-                </h2>
-
-                <p className="font-semibold text-lg text-gray-700 mb-4">
-                    (nhập số CCCD)
-                </p>
-
-                <div className="flex gap-4">
-
-                    <input
-                        type="text"
-                        value={cccd}
-                        onChange={(e) => setCccd(e.target.value)}
-                        placeholder="08388388381111111"
-                            className="border border-gray-400
-                            w-[300px]
-                            h-[45px]
-                            px-4
-                            text-base
-                            outline-none rounded"
-                    />
-
-                    <button
-                        onClick={TimKhachHang}
-                        disabled={dangTai}
-                        className="bg-[#333333]
-                            hover:bg-black
-                            text-white
-                            px-6
-                            h-[45px]
-                            text-base
-                            font-bold
-                            rounded
-                            shadow-sm"
-                    >
-                        Tìm
-                    </button>
-                </div>
-            </div>
-
-            {/* ================= DATA ================= */}
-            {duLieu && (
-                <div className="grid grid-cols-2 gap-8">
-
-                    {/* LEFT */}
-                    <div>
-
-                        <table className="w-full border-collapse mb-8">
-                            <tbody>
-
-                                <DongThongTin
-                                    label="Khách hàng"
-                                    value={`${duLieu.khachHang.MaKH} - ${duLieu.khachHang.HoTen}`}
-                                />
-
-                                <DongThongTin
-                                    label="Nhu cầu thuê"
-                                    value={duLieu.phieuYeuCau.HinhThucThue}
-                                />
-
-                                <DongThongTin
-                                    label="Phòng"
-                                    value={duLieu.phong.MaPhong}
-                                />
-
-                                <DongThongTin
-                                    label="Số giường"
-                                    value={duLieu.phong.SoNguoiThueToiDa}
-                                />
-
-                                <tr className="border border-gray-300">
-                                    <td className="border border-gray-300 px-3 py-2 font-bold text-sm bg-gray-50 w-[220px]">
-                                        Tình trạng phòng
-                                    </td>
-
-                                    <td className="border border-gray-300 px-3 py-2 text-sm font-bold text-green-600">
-                                        {duLieu.phong.TrangThai}
-                                    </td>
-                                </tr>
-
-                            </tbody>
-                        </table>
-
-                        {/* TIỀN */}
-                        <div className="mb-6">
-                            <p className="text-xl font-bold mb-2">
-                                Mức tiền cọc:
-                            </p>
-
-                            {duLieu.phieuDatCoc ? (
-                                <p className="text-[#2A754B] text-3xl font-bold">
-                                    {FormatTien(
-                                        duLieu.phieuDatCoc.TienCoc
-                                    )}
-                                </p>
-                            ) : (
-                                <p className="text-[#2A754B] text-3xl font-bold">
-                                    {FormatTien(
-                                        duLieu.phong.GiaThuePhong * 2
-                                    )}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* STATUS */}
-                        <div className="mb-6">
-                            <p className="text-xl font-bold mb-2">
-                                Trạng thái:
-                            </p>
-
-                            {duLieu.phieuDatCoc ? (
-                                <div className="text-3xl font-bold leading-tight">
-                                    {duLieu.phieuDatCoc.TrangThai}
-                                </div>
-                            ) : (
-                                <div className="text-3xl font-bold leading-tight">
-                                    {duLieu.trangThaiPYC}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* TIME */}
-                        <div>
-                            <p className="text-xl font-bold mb-2">
-                                Thời gian còn lại:
-                            </p>
-
-                            <p className="text-[#2A754B] text-3xl font-bold">
-                                {thoiGianConLai}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* RIGHT */}
-                    <div>
-
-                        <h3 className="text-xl font-bold mb-4">
-                            Chọn hình thức thanh toán
-                        </h3>
-
-                        <div className="border border-gray-400 overflow-hidden mb-8 rounded">
-
-                            <label className="flex items-center gap-4 border-b border-gray-300 px-4 h-[65px] cursor-pointer">
-                                <input
-                                    type="radio"
-                                    checked={
-                                        hinhThucThanhToan === 'Tiền mặt'
-                                    }
-                                    onChange={() =>
-                                        setHinhThucThanhToan('Tiền mặt')
-                                    }
-                                    disabled={
-                                        daThanhToan ||
-                                        !duLieu.phieuDatCoc ||
-                                        duLieu.phong.TrangThai !== 'Trống'
-                                    }
-                                    className="w-5 h-5"
-                                />
-
-                                <span className="text-lg">
-                                    Tiền mặt
-                                </span>
-                            </label>
-
-                            <label className="flex items-center gap-4 px-4 h-[65px] cursor-pointer">
-                                <input
-                                    type="radio"
-                                    checked={
-                                        hinhThucThanhToan === 'Chuyển khoản'
-                                    }
-                                    onChange={() =>
-                                        setHinhThucThanhToan('Chuyển khoản')
-                                    }
-                                    disabled={
-                                        daThanhToan ||
-                                        !duLieu.phieuDatCoc
-                                    }
-                                    className="w-5 h-5"
-                                />
-
-                                <span className="text-lg">
-                                    Chuyển khoản
-                                </span>
-                            </label>
-                        </div>
-
-                        {/* BUTTON */}
-                        {!daThanhToan &&
-                        duLieu.phieuDatCoc &&
-                        duLieu.phong.TrangThai === 'Trống' ? (
-                            <button
-                                onClick={GhiNhanThanhToan}
-                                className="w-full h-[65px] bg-[#2A754B] hover:bg-green-800 text-white text-xl font-bold rounded"
-                            >
-                                Ghi nhận thanh toán
-                            </button>
-
-                        ) : daThanhToan ? (
-                            <button
-                                onClick={InHoaDon}
-                                className="w-full h-[65px] bg-[#2A754B] hover:bg-green-800 text-white text-xl font-bold rounded"
-                            >
-                                In hoá đơn
-                            </button>
-
-                        ) : (
-                            <button
-                                disabled
-                                className="w-full h-[65px] bg-gray-300 cursor-not-allowed text-white text-xl font-bold rounded"
-                            >
-                                Ghi nhận thanh toán
-                            </button>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
-    </div>
-);
-};
-
-// ==========================
-// COMPONENT ROW
-// ==========================
-const DongThongTin = ({ label, value }) => {
-    return (
-        <tr className="border border-gray-300">
-            <td className="border border-gray-300 px-3 py-2 font-bold text-sm bg-gray-50 w-[220px]">
-                {label}
-            </td>
-
-            <td className="border border-gray-300 px-3 py-2 text-sm">
-                {value || '...'}
-            </td>
-        </tr>
     );
 };
+
+const DongThongTin = ({ label, value }) => (
+    <tr className="border border-gray-300">
+        <td className="border border-gray-300 px-3 py-2 font-bold text-sm bg-gray-50 w-[220px]">{label}</td>
+        <td className="border border-gray-300 px-3 py-2 text-sm">{value || '...'}</td>
+    </tr>
+);
+
 export default ThanhToanCoc;

@@ -42,10 +42,19 @@ const CapNhatTrangThaiGiuong = async (MaGiuong, TrangThai) => {
         .execute('CapNhatTrangThaiGiuong');
 };
 
+const CapNhatTrangThaiPhong = async (MaPhong, TrangThai) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaPhong', mssql.VarChar(50), MaPhong)
+        .input('TrangThai', mssql.NVarChar(50), TrangThai)
+        .query('UPDATE PHONG SET TrangThai = @TrangThai WHERE MaPhong = @MaPhong');
+};
+
 module.exports = { 
     LayDanhSachPhong, 
     LayChiTietPhong,
     LayThongTinPhong,
     getFreeBedsByMaPhong,
-    CapNhatTrangThaiGiuong
+    CapNhatTrangThaiGiuong,
+    CapNhatTrangThaiPhong
 };

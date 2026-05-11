@@ -7,7 +7,8 @@ const { LayPhieuYeuCauGanNhat } = require('../models/xacNhanThueModel');
 const {
     LayThongTinPhong,
     getFreeBedsByMaPhong,
-    CapNhatTrangThaiGiuong
+    CapNhatTrangThaiGiuong,
+    CapNhatTrangThaiPhong
 } = require('../models/roomModel');
 const {
     LayPhieuDatCocTheoMaPhieuYC,
@@ -64,37 +65,49 @@ router.get('/:cccd', async (req, res) => {
 
 router.post('/record-payment', async (req, res) => {
     try {
-        const { MaPhieuDatCoc, HinhThucThanhToan, MaPhong, SoNguoi } = req.body;
-        console.log('Dữ liệu nhận được để ghi nhận thanh toán:', req.body);
-        await GhiNhanThanhToan(MaPhieuDatCoc, HinhThucThanhToan);
+        const { MaPhieuDatCoc, HinhThucThanhToan, MaPhong, SoNguoi, HinhThucThue } = req.body;
+        
+        // 1. Kiểm tra giường trước
         const beds = await getFreeBedsByMaPhong(MaPhong);
-        console.log('Giường trống trong phòng:', beds);
         if (beds.length < SoNguoi) {
-            return res.status(400).json({ error: 'Không đủ giường trống trong phòng để ghi nhận thanh toán!' });
+            return res.status(400).json({ error: 'Không đủ giường trống trong phòng!' });
         }
+
+        // 2. Ghi nhận tiền
+        await GhiNhanThanhToan(MaPhieuDatCoc, HinhThucThanhToan);
+
+        // 3. Đặt giường cho khách
         for (let i = 0; i < SoNguoi; i++) {
-            console.log(`Đang đặt giường ${beds[i].MaGiuong} cho phiếu đặt cọc ${MaPhieuDatCoc}`);
             await DatGiuong(MaPhieuDatCoc, beds[i].MaGiuong);
-            console.log(`Đã đặt giường ${beds[i].MaGiuong} cho phiếu đặt cọc ${MaPhieuDatCoc}, đang cập nhật trạng thái giường...`);
-            await CapNhatTrangThaiGiuong(beds[i].MaGiuong, 'Đã có người'); // Cập nhật trạng thái giường sau khi đặt
-            console.log(`Đã đặt giường ${beds[i].MaGiuong} cho phiếu đặt cọc ${MaPhieuDatCoc}`);
+            await CapNhatTrangThaiGiuong(beds[i].MaGiuong, 'Đã có người'); 
         }
+
+        // 4. CHỈ CẬP NHẬT PHÒNG NẾU THUÊ NGUYÊN PHÒNG
+        if (HinhThucThue && HinhThucThue.toLowerCase().includes('nguyên')) {
+            await CapNhatTrangThaiPhong(MaPhong, 'Đã đặt cọc');
+        }
+
         res.json({ message: 'Thanh toán đã được ghi nhận!' });
     } catch (err) {
-        res.status(500).send('Lỗi server rồi: ' + err.message);
+        res.status(500).json({ error: err.message });
     }
 });
 
+// file: depositRoutes.js
 router.post('/appointment', async (req, res) => {
     try {
-        const { MaPhieuYC, NgayHen, GioHen } = req.body;
-        // chuyển đổi NgayHen và GioHen thành định dạng DateTime của SQL Server
-        const ngayGioHen = new Date(`${NgayHen}T${GioHen}`);
-        console.log('Dữ liệu nhận được để tạo lịch hẹn:', { MaPhieuYC, NgayHen, GioHen, ngayGioHen });
-        const maLH = await TaoLichHenNhanPhong(ngayGioHen, MaPhieuYC);
+        // 1. Lấy thêm MaNV từ body
+        const { MaPhieuYC, NgayHen, GioHen, MaNV } = req.body; 
+        
+        // 2. Format chuỗi thời gian
+        const ngayGioHen = `${NgayHen} ${GioHen}:00`; 
+        
+        // 3. TRUYỀN ĐỦ 3 THAM SỐ: ngayGioHen, MaPhieuYC, MaNV
+        const maLH = await TaoLichHenNhanPhong(ngayGioHen, MaPhieuYC, MaNV);
+        
         res.json({ message: 'Lịch hẹn đã được tạo!', MaLichHen: maLH });
     } catch (err) {
-        res.status(500).send('Lỗi server rồi: ' + err.message);
+        res.status(500).send('Lỗi server: ' + err.message);
     }
 });
 
