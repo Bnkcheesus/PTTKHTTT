@@ -26,6 +26,28 @@ const depositService = {
     rejectDeposit: async (maPhieu) => {
         const response = await axios.post(`${API_URL}/deposit/${maPhieu}/reject`);
         return response.data;
+    },
+
+    getPending: async (cccd) => {
+        const res = await axios.get(`${API_URL}/pending/${cccd}`);
+        return res.data;
+    },
+    confirm: async (payload) => {
+        const res = await axios.post(`${API_URL}/confirm`, payload);
+        return res.data;
+    },
+    getInfo: async (cccd) => {
+        const res = await axios.get(`${API_URL}/info/${cccd}`);
+        return res.data;
+    },
+    pay: async (maPDC, hinhThuc) => {
+        const res = await axios.post(`${API_URL}/pay`, { maPDC, hinhThuc });
+        return res.data;
+    },
+    // Cập nhật thông tin khách hàng
+    updateCustomer: async (data) => {
+        const response = await axios.post(`${API_URL}/update-customer`, data);
+        return response.data;
     }
 };
 

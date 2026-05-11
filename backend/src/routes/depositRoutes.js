@@ -4,17 +4,17 @@ const depositController = require('../controllers/depositController');
 
 const { getCustomerByCCCD } = require('../models/customerModel');
 const { LayPhieuYeuCauGanNhat } = require('../models/xacNhanThueModel');
-const { 
+const {
     LayThongTinPhong,
     getFreeBedsByMaPhong,
     CapNhatTrangThaiGiuong
- } = require('../models/roomModel');
-const { 
+} = require('../models/roomModel');
+const {
     LayPhieuDatCocTheoMaPhieuYC,
     GhiNhanThanhToan,
     DatGiuong,
     TaoLichHenNhanPhong
- } = require('../models/depositModel');
+} = require('../models/depositModel');
 const { route } = require('./xacNhanThueRoutes');
 
 router.get('/paid', depositController.getPaid);
@@ -25,6 +25,7 @@ router.get('/pending/:cccd', depositController.getPendingRequest);
 router.post('/confirm', depositController.confirmRental);
 router.get('/info/:cccd', depositController.getDepositInfo);
 router.post('/pay', depositController.processPayment);
+router.post('/update-customer', depositController.updateCustomer);
 
 router.get('/:cccd', async (req, res) => {
     try {
@@ -62,7 +63,7 @@ router.get('/:cccd', async (req, res) => {
 });
 
 router.post('/record-payment', async (req, res) => {
-    try {       
+    try {
         const { MaPhieuDatCoc, HinhThucThanhToan, MaPhong, SoNguoi } = req.body;
         console.log('Dữ liệu nhận được để ghi nhận thanh toán:', req.body);
         await GhiNhanThanhToan(MaPhieuDatCoc, HinhThucThanhToan);
