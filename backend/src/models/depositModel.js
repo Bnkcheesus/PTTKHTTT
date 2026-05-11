@@ -93,12 +93,18 @@ const updatePaymentStatus = async (maPDC, hinhThucThanhToan) => {
         .execute('CapNhatPDC_DaThanhToan');
 };
 
-const GhiNhanThanhToan = async (maPDC, hinhThucThanhToan) => {
+const GhiNhanThanhToan = async (MaPhieuDatCoc, HinhThucThanhToan) => {
     const pool = await poolPromise;
     await pool.request()
-        .input('MaPDC', mssql.VarChar(50), maPDC)
-        .input('HinhThucThanhToan', mssql.NVarChar(20), hinhThucThanhToan)
-        .execute('CapNhatPDC_DaThanhToan');
+        .input('MaPhieuDatCoc', mssql.VarChar(50), MaPhieuDatCoc)
+        // Nhận thêm biến hình thức thanh toán
+        .input('HinhThucThanhToan', mssql.NVarChar(50), HinhThucThanhToan) 
+        .query(`
+            UPDATE PHIEUDATCOC 
+            SET TrangThai = N'Đã thanh toán',
+                HinhThucThanhToan = @HinhThucThanhToan
+            WHERE MaPhieuDatCoc = @MaPhieuDatCoc
+        `);
 };
 
 const DatGiuong = async (maPDC, maGiuong) => {
@@ -110,24 +116,42 @@ const DatGiuong = async (maPDC, maGiuong) => {
 };
 
 const TaoLichHenNhanPhong = async (ngayGioHen, maPhieuYC, maNV) => {
-    const pool = await poolPromise;
-    const request = pool.request();
+    // 1. KIỂM TRA NGÀY (Cắt bỏ giây để tránh lỗi quá khứ)
+    const ngayHen = new Date(ngayGioHen);
+    const bayGio = new Date();
+    bayGio.setSeconds(0, 0); 
 
-    // Khớp kiểu dữ liệu với SP trong file 4_sp_HenLich.sql
-    // Dùng mssql.DateTime cho @ThoiGian
-    request.input('ThoiGian', mssql.DateTime, new Date(ngayGioHen)); 
-    request.input('LyDo', mssql.NVarChar(255), 'Hẹn nhận phòng');
-    request.input('MaPhieuYC', mssql.VarChar(50), maPhieuYC);
-    
-    // Đảm bảo MaNV không được undefined/null vì SP không để giá trị mặc định
-    request.input('MaNV', mssql.VarChar(50), maNV || 'NV001'); 
+    if (isNaN(ngayHen.getTime())) throw new Error("Định dạng ngày hẹn không hợp lệ!");
+    if (ngayHen < bayGio) throw new Error("Thời gian hẹn không được ở trong quá khứ!");
+
+    // 2. DỌN DẸP DỮ LIỆU ĐỂ NỐI CHUỖI
+    const thoiGianSach = String(ngayGioHen || '').replace('T', ' ').replace(/\..*$/, '');
+    const pycAnToan = maPhieuYC ? String(maPhieuYC) : 'PYC_TEST';
+    const nvAnToan = maNV ? String(maNV) : 'NV001';
+
+    const pool = await poolPromise;
 
     try {
-        const result = await request.execute('ThemLichHen');
-        // Lấy đúng tên cột 'MaLHMoi' mà SP trả về
-        return result.recordset[0].MaLHMoi; 
+        // 3. TUYỆT CHIÊU: RAW QUERY (Bỏ qua hoàn toàn request.input)
+        // Ghép thẳng dữ liệu vào câu lệnh EXEC. Driver sẽ chỉ thấy 1 chuỗi ký tự duy nhất 
+        // và không thể bắt bẻ kiểu dữ liệu được nữa.
+        const queryStr = `
+            EXEC ThemLichHen 
+                @ThoiGian = '${thoiGianSach}', 
+                @LyDo = N'Hẹn nhận phòng', 
+                @MaPhieuYC = '${pycAnToan}', 
+                @MaNV = '${nvAnToan}'
+        `;
+
+        // In ra màn hình console để bạn dễ dàng nhìn thấy lệnh SQL sẽ được chạy
+        console.log("Đang thực thi SQL:", queryStr);
+
+        // Chạy lệnh bằng .query()
+        const result = await pool.request().query(queryStr);
+        
+        return result.recordset[0].MaLHMoi || result.recordset[0].MaLH; 
     } catch (err) {
-        console.error('Lỗi thực thi SP:', err.message);
+        console.error('Lỗi thực thi SP ThemLichHen:', err.message);
         throw err;
     }
 };

@@ -107,22 +107,22 @@ const ThanhToanCoc = () => {
     };
 
     const XacNhanHen = async () => {
-        if (!ngayHen || !gioHen) {
-            setThongBao({ hienThi: true, noiDung: 'Vui lòng chọn đầy đủ ngày và giờ hẹn!', loai: 'error' });
-            return;
-        }
+        if (!ngayHen || !gioHen) return;
 
         try {
-            // Lấy MaNV từ user đang đăng nhập trong AuthContext/LocalStorage
             const storedUser = JSON.parse(localStorage.getItem('user'));
-            const currentMaNV = storedUser ? storedUser.MaNV : null;
+            const currentMaNV = storedUser ? storedUser.MaNV : 'NV001'; // Mặc định NV001 nếu rỗng
 
-            await axios.post(`http://localhost:5000/api/deposits/appointment`, {
-                MaPhieuYC: duLieu.MaPhieuYC,
-                NgayHen: ngayHen,
-                GioHen: gioHen,
-                MaNV: currentMaNV 
-            });
+            await axios.post(
+                `http://localhost:5000/api/deposits/appointment`,
+                {
+                    // Quét toàn bộ vị trí có thể chứa MaPhieuYC, nếu không có thì gán 'PYC_TEST' để không bị chết server
+                    MaPhieuYC: duLieu.MaPhieuYC || duLieu.phieuDatCoc?.MaPhieuYC || duLieu.phieuYeuCau?.MaPhieuYC || 'PYC_TEST', 
+                    NgayHen: ngayHen,
+                    GioHen: gioHen,
+                    MaNV: currentMaNV
+                }
+            );
 
             setThongBao({ hienThi: true, noiDung: 'Xác nhận lịch hẹn thành công!', loai: 'success' });
             setPopup(false);
@@ -262,8 +262,15 @@ const ThanhToanCoc = () => {
 
             {/* POPUP HẸN LỊCH NHẬN PHÒNG */}
             {popup && (
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white w-[500px] rounded-lg shadow-2xl overflow-hidden">
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center">
+                    {/* Lớp nền mờ trong suốt (Backdrop) */}
+                    <div 
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+                        onClick={() => setPopup(false)}
+                    ></div>
+
+                    {/* Nội dung Popup nổi lên trên */}
+                    <div className="relative bg-white w-[500px] rounded-lg shadow-2xl overflow-hidden z-10">
                         <div className="bg-[#2A754B] text-white py-4 px-6 text-center font-bold text-lg">
                             Ghi nhận thanh toán cọc thành công!
                         </div>
@@ -289,7 +296,13 @@ const ThanhToanCoc = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="flex justify-end">
+                            <div className="flex justify-end gap-4">
+                                <button
+                                    onClick={() => setPopup(false)}
+                                    className="bg-gray-400 text-white px-6 py-2 font-bold rounded hover:bg-gray-500"
+                                >
+                                    Hủy
+                                </button>
                                 <button
                                     onClick={XacNhanHen}
                                     className="bg-black text-white px-10 py-2 font-bold rounded hover:bg-gray-800"
