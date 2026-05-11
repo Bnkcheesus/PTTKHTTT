@@ -265,342 +265,322 @@ const ThanhToanCoc = () => {
         'Đã thanh toán';
 
     return (
-        <div className="bg-[#F5F5F5] min-h-screen">
-            <SaleNavbar />
+    <div className="min-h-screen">
+        <SaleNavbar />
 
-            <div className="max-w-7xl mx-auto px-10 py-8 relative">
+        <div className="max-w-7xl mx-auto px-8 py-6 relative">
 
-                {/* ================= POPUP ================= */}
-                {popup && (
-                    <div className="fixed inset-0 z-[9999] bg-black/20 flex items-center justify-center">
-                        <div className="bg-white w-[740px] shadow-2xl border relative">
+            {/* ================= POPUP ================= */}
+            {popup && (
+                <div className="fixed inset-0 z-[9999] bg-black/20 flex items-center justify-center">
+                    <div className="bg-white w-[620px] shadow-2xl border relative rounded">
 
-                            {/* HEADER */}
-                            <div className="bg-[#2A754B] text-white text-4xl font-bold text-center py-8">
-                                Ghi nhận thanh toán cọc thành công!
-                            </div>
-
-                            {/* BODY */}
-                            <div className="p-16">
-
-                                <div className="mb-10">
-                                    <p className="text-4xl font-bold mb-5">
-                                        Hẹn nhận phòng:
-                                    </p>
-
-                                    <div className="grid grid-cols-2 gap-10">
-                                        <div>
-                                            <label className="block text-3xl font-bold mb-3">
-                                                Ngày hẹn*
-                                            </label>
-
-                                            <input
-                                                type="date"
-                                                value={ngayHen}
-                                                onChange={(e) =>
-                                                    setNgayHen(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full border border-gray-400 h-[70px] px-5 text-3xl rounded"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-3xl font-bold mb-3">
-                                                Giờ hẹn*
-                                            </label>
-
-                                            <input
-                                                type="time"
-                                                value={gioHen}
-                                                onChange={(e) =>
-                                                    setGioHen(
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full border border-gray-400 h-[70px] px-5 text-3xl rounded"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-end">
-                                    <button
-                                        disabled={
-                                            !ngayHen ||
-                                            !gioHen
-                                        }
-                                        onClick={
-                                            XacNhanHen
-                                        }
-                                        className={`px-16 h-[70px] text-3xl font-bold text-white rounded ${
-                                            !ngayHen ||
-                                            !gioHen
-                                                ? 'bg-gray-300 cursor-not-allowed'
-                                                : 'bg-[#333333] hover:bg-black'
-                                        }`}
-                                    >
-                                        Xác nhận
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* ================= TAB ================= */}
-                <div className="flex justify-end mb-6">
-                    <div className="flex border border-gray-500 overflow-hidden">
-
-                        <button
-                            className="w-[230px] h-[60px] bg-black text-white text-3xl font-bold"
-                        >
-                            Thuê
-                        </button>
-
-                        <button
-                            onClick={() =>
-                                navigate('/thanhly')
-                            }
-                            className="w-[230px] h-[60px] bg-white text-black text-3xl"
-                        >
-                            Thanh lý
-                        </button>
-                    </div>
-                </div>
-
-                {/* ================= SEARCH ================= */}
-                <div className="mb-8">
-
-                    <h2 className="text-4xl font-bold leading-tight">
-                        Chọn một khách hàng để ghi nhận thanh toán
-                    </h2>
-
-                    <p className="font-semibold text-2xl text-gray-700 mb-5">
-                        (nhập số CCCD)
-                    </p>
-
-                    <div className="flex gap-5">
-
-                        <input
-                            type="text"
-                            value={cccd}
-                            onChange={(e) =>
-                                setCccd(e.target.value)
-                            }
-                            placeholder="08388388381111111"
-                            className="flex-1 border border-gray-500 h-[70px] px-5 text-3xl rounded"
-                        />
-
-                        <button
-                            onClick={TimKhachHang}
-                            disabled={dangTai}
-                            className="bg-[#333333] hover:bg-black text-white px-10 text-3xl font-bold rounded"
-                        >
-                            Tìm
-                        </button>
-                    </div>
-                </div>
-
-                {/* ================= DATA ================= */}
-                {duLieu && (
-                    <div className="grid grid-cols-2 gap-10">
-
-                        {/* LEFT */}
-                        <div>
-
-                            <table className="w-full border-collapse mb-10">
-                                <tbody>
-
-                                    <DongThongTin
-                                        label="Khách hàng"
-                                        value={`${duLieu.khachHang.MaKH} - ${duLieu.khachHang.HoTen}`}
-                                    />
-
-                                    <DongThongTin
-                                        label="Nhu cầu thuê"
-                                        value={
-                                            duLieu
-                                                .phieuYeuCau
-                                                .HinhThucThue
-                                        }
-                                    />
-
-                                    <DongThongTin
-                                        label="Phòng"
-                                        value={
-                                            duLieu.phong.MaPhong
-                                        }
-                                    />
-
-                                    <DongThongTin
-                                        label="Số giường"
-                                        value={
-                                            duLieu.phong
-                                                .SoNguoiThueToiDa
-                                        }
-                                    />
-
-                                    <tr className="border border-gray-300">
-                                        <td className="border border-gray-300 px-4 py-3 font-bold text-2xl bg-gray-50 w-[250px]">
-                                            Tình trạng phòng
-                                        </td>
-
-                                        <td className="border border-gray-300 px-4 py-3 text-2xl font-bold text-green-600">
-                                            {duLieu.phong.TrangThai}
-                                        </td>
-                                    </tr>
-
-                                </tbody>
-                            </table>
-
-                            {/* TIỀN */} 
-                            <div className="mb-8">
-                                <p className="text-3xl font-bold mb-2">
-                                    Mức tiền cọc:
-                                </p>
-
-                                
-                                {duLieu.phieuDatCoc ? (
-                                    <p className="text-[#2A754B] text-6xl font-bold">
-                                        {FormatTien(
-                                            duLieu
-                                                .phieuDatCoc
-                                                .TienCoc
-                                        )}
-                                    </p>
-                                ) : (
-                                    <p className="text-[#2A754B] text-6xl font-bold">
-                                        {FormatTien(
-                                            duLieu
-                                                .phong.GiaThuePhong * 2
-                                        )}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* STATUS */}
-                            <div className="mb-8">
-                                <p className="text-3xl font-bold mb-2">
-                                    Trạng thái:
-                                </p>
-
-                                
-                                {duLieu.phieuDatCoc ? (
-                                    <div className="text-5xl font-bold leading-tight">
-                                        {duLieu
-                                            .phieuDatCoc
-                                            .TrangThai}
-                                    </div>
-                                ) : (
-                                    <div className="text-5xl font-bold leading-tight">
-                                        {duLieu
-                                            .trangThaiPYC}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* TIME */}
-                            <div>
-                                <p className="text-3xl font-bold mb-2">
-                                    Thời gian còn lại:
-                                </p>
-
-                                <p className="text-[#2A754B] text-5xl font-bold">
-                                    {thoiGianConLai}
-                                </p>
-                            </div>
+                        {/* HEADER */}
+                        <div className="bg-[#2A754B] text-white text-2xl font-bold text-center py-6 rounded-t">
+                            Ghi nhận thanh toán cọc thành công!
                         </div>
 
-                        {/* RIGHT */}
-                        <div>
+                        {/* BODY */}
+                        <div className="p-10">
 
-                            <h3 className="text-3xl font-bold mb-4">
-                                Chọn hình thức thanh toán
-                            </h3>
+                            <div className="mb-8">
+                                <p className="text-2xl font-bold mb-4">
+                                    Hẹn nhận phòng:
+                                </p>
 
-                            <div className="border border-gray-400 overflow-hidden mb-10">
-                                
-                                <label className="flex items-center gap-5 border-b border-gray-300 px-5 h-[80px] cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        checked={
-                                            hinhThucThanhToan ===
-                                            'Tiền mặt'
-                                        }
-                                        onChange={() =>
-                                            setHinhThucThanhToan(
-                                                'Tiền mặt'
-                                            )
-                                        }
-                                        disabled={
-                                            daThanhToan || !duLieu.phieuDatCoc || duLieu.phong.TrangThai !== 'Trống'
-                                        }
-                                        className="w-7 h-7"
-                                    />
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-xl font-bold mb-2">
+                                            Ngày hẹn*
+                                        </label>
 
-                                    <span className="text-3xl">
-                                        Tiền mặt
-                                    </span>
-                                </label>
+                                        <input
+                                            type="date"
+                                            value={ngayHen}
+                                            onChange={(e) =>
+                                                setNgayHen(e.target.value)
+                                            }
+                                            className="w-full border border-gray-400 h-[55px] px-4 text-xl rounded"
+                                        />
+                                    </div>
 
-                                <label className="flex items-center gap-5 px-5 h-[80px] cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        checked={
-                                            hinhThucThanhToan ===
-                                            'Chuyển khoản'
-                                        }
-                                        onChange={() =>
-                                            setHinhThucThanhToan(
-                                                'Chuyển khoản'
-                                            )
-                                        }
-                                        disabled={
-                                            daThanhToan || !duLieu.phieuDatCoc
-                                        }
-                                        className="w-7 h-7"
-                                    />
+                                    <div>
+                                        <label className="block text-xl font-bold mb-2">
+                                            Giờ hẹn*
+                                        </label>
 
-                                    <span className="text-3xl">
-                                        Chuyển khoản
-                                    </span>
-                                </label>
+                                        <input
+                                            type="time"
+                                            value={gioHen}
+                                            onChange={(e) =>
+                                                setGioHen(e.target.value)
+                                            }
+                                            className="w-full border border-gray-400 h-[55px] px-4 text-xl rounded"
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* BUTTON */}
-                            {!daThanhToan && duLieu.phieuDatCoc && duLieu.phong.TrangThai === 'Trống' ? (
+                            <div className="flex justify-end">
                                 <button
-                                    onClick={
-                                        GhiNhanThanhToan
-                                    }
-                                    className="w-full h-[80px] bg-[#2A754B] hover:bg-green-800 text-white text-3xl font-bold rounded"
+                                    disabled={!ngayHen || !gioHen}
+                                    onClick={XacNhanHen}
+                                    className={`px-10 h-[55px] text-xl font-bold text-white rounded ${
+                                        !ngayHen || !gioHen
+                                            ? 'bg-gray-300 cursor-not-allowed'
+                                            : 'bg-[#333333] hover:bg-black'
+                                    }`}
                                 >
-                                    Ghi nhận thanh toán
+                                    Xác nhận
                                 </button>
-                            // nếu đã thanh toán thì cho in hoá đơn, còn lại thì disabled Ghi nhận thanh toán
-                                ) : daThanhToan ? (
-                                    <button
-                                        onClick={InHoaDon}
-                                        className="w-full h-[80px] bg-[#2A754B] hover:bg-green-800 text-white text-3xl font-bold rounded"
-                                    >
-                                    In hoá đơn
-                                </button>
-                                ) : (
-                                    <button
-                                        disabled
-                                        className="w-full h-[80px] bg-gray-300 cursor-not-allowed text-white text-3xl font-bold rounded"
-                                    >
-                                        Ghi nhận thanh toán
-                                    </button>
-                                )}
+                            </div>
                         </div>
                     </div>
-                )}
+                </div>
+            )}
+
+            {/* ================= TAB ================= */}
+            <div className="flex justify-end mb-5">
+                <div className="flex border border-gray-500 overflow-hidden rounded">
+
+                    <button
+                        className="w-[180px] h-[50px] bg-black text-white text-xl font-bold"
+                    >
+                        Thuê
+                    </button>
+
+                    <button
+                        onClick={() => navigate('/thanhly')}
+                        className="w-[180px] h-[50px] bg-white text-black text-xl"
+                    >
+                        Thanh lý
+                    </button>
+                </div>
             </div>
+
+            {/* ================= SEARCH ================= */}
+            <div className="mb-6">
+
+                <h2 className="text-xl font-bold leading-tight">
+                    Chọn một khách hàng để ghi nhận thanh toán
+                </h2>
+
+                <p className="font-semibold text-lg text-gray-700 mb-4">
+                    (nhập số CCCD)
+                </p>
+
+                <div className="flex gap-4">
+
+                    <input
+                        type="text"
+                        value={cccd}
+                        onChange={(e) => setCccd(e.target.value)}
+                        placeholder="08388388381111111"
+                            className="border border-gray-400
+                            w-[300px]
+                            h-[45px]
+                            px-4
+                            text-base
+                            outline-none rounded"
+                    />
+
+                    <button
+                        onClick={TimKhachHang}
+                        disabled={dangTai}
+                        className="bg-[#333333]
+                            hover:bg-black
+                            text-white
+                            px-6
+                            h-[45px]
+                            text-base
+                            font-bold
+                            rounded
+                            shadow-sm"
+                    >
+                        Tìm
+                    </button>
+                </div>
+            </div>
+
+            {/* ================= DATA ================= */}
+            {duLieu && (
+                <div className="grid grid-cols-2 gap-8">
+
+                    {/* LEFT */}
+                    <div>
+
+                        <table className="w-full border-collapse mb-8">
+                            <tbody>
+
+                                <DongThongTin
+                                    label="Khách hàng"
+                                    value={`${duLieu.khachHang.MaKH} - ${duLieu.khachHang.HoTen}`}
+                                />
+
+                                <DongThongTin
+                                    label="Nhu cầu thuê"
+                                    value={duLieu.phieuYeuCau.HinhThucThue}
+                                />
+
+                                <DongThongTin
+                                    label="Phòng"
+                                    value={duLieu.phong.MaPhong}
+                                />
+
+                                <DongThongTin
+                                    label="Số giường"
+                                    value={duLieu.phong.SoNguoiThueToiDa}
+                                />
+
+                                <tr className="border border-gray-300">
+                                    <td className="border border-gray-300 px-3 py-2 font-bold text-sm bg-gray-50 w-[220px]">
+                                        Tình trạng phòng
+                                    </td>
+
+                                    <td className="border border-gray-300 px-3 py-2 text-sm font-bold text-green-600">
+                                        {duLieu.phong.TrangThai}
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+
+                        {/* TIỀN */}
+                        <div className="mb-6">
+                            <p className="text-xl font-bold mb-2">
+                                Mức tiền cọc:
+                            </p>
+
+                            {duLieu.phieuDatCoc ? (
+                                <p className="text-[#2A754B] text-3xl font-bold">
+                                    {FormatTien(
+                                        duLieu.phieuDatCoc.TienCoc
+                                    )}
+                                </p>
+                            ) : (
+                                <p className="text-[#2A754B] text-3xl font-bold">
+                                    {FormatTien(
+                                        duLieu.phong.GiaThuePhong * 2
+                                    )}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* STATUS */}
+                        <div className="mb-6">
+                            <p className="text-xl font-bold mb-2">
+                                Trạng thái:
+                            </p>
+
+                            {duLieu.phieuDatCoc ? (
+                                <div className="text-3xl font-bold leading-tight">
+                                    {duLieu.phieuDatCoc.TrangThai}
+                                </div>
+                            ) : (
+                                <div className="text-3xl font-bold leading-tight">
+                                    {duLieu.trangThaiPYC}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* TIME */}
+                        <div>
+                            <p className="text-xl font-bold mb-2">
+                                Thời gian còn lại:
+                            </p>
+
+                            <p className="text-[#2A754B] text-3xl font-bold">
+                                {thoiGianConLai}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* RIGHT */}
+                    <div>
+
+                        <h3 className="text-xl font-bold mb-4">
+                            Chọn hình thức thanh toán
+                        </h3>
+
+                        <div className="border border-gray-400 overflow-hidden mb-8 rounded">
+
+                            <label className="flex items-center gap-4 border-b border-gray-300 px-4 h-[65px] cursor-pointer">
+                                <input
+                                    type="radio"
+                                    checked={
+                                        hinhThucThanhToan === 'Tiền mặt'
+                                    }
+                                    onChange={() =>
+                                        setHinhThucThanhToan('Tiền mặt')
+                                    }
+                                    disabled={
+                                        daThanhToan ||
+                                        !duLieu.phieuDatCoc ||
+                                        duLieu.phong.TrangThai !== 'Trống'
+                                    }
+                                    className="w-5 h-5"
+                                />
+
+                                <span className="text-lg">
+                                    Tiền mặt
+                                </span>
+                            </label>
+
+                            <label className="flex items-center gap-4 px-4 h-[65px] cursor-pointer">
+                                <input
+                                    type="radio"
+                                    checked={
+                                        hinhThucThanhToan === 'Chuyển khoản'
+                                    }
+                                    onChange={() =>
+                                        setHinhThucThanhToan('Chuyển khoản')
+                                    }
+                                    disabled={
+                                        daThanhToan ||
+                                        !duLieu.phieuDatCoc
+                                    }
+                                    className="w-5 h-5"
+                                />
+
+                                <span className="text-lg">
+                                    Chuyển khoản
+                                </span>
+                            </label>
+                        </div>
+
+                        {/* BUTTON */}
+                        {!daThanhToan &&
+                        duLieu.phieuDatCoc &&
+                        duLieu.phong.TrangThai === 'Trống' ? (
+                            <button
+                                onClick={GhiNhanThanhToan}
+                                className="w-full h-[65px] bg-[#2A754B] hover:bg-green-800 text-white text-xl font-bold rounded"
+                            >
+                                Ghi nhận thanh toán
+                            </button>
+
+                        ) : daThanhToan ? (
+                            <button
+                                onClick={InHoaDon}
+                                className="w-full h-[65px] bg-[#2A754B] hover:bg-green-800 text-white text-xl font-bold rounded"
+                            >
+                                In hoá đơn
+                            </button>
+
+                        ) : (
+                            <button
+                                disabled
+                                className="w-full h-[65px] bg-gray-300 cursor-not-allowed text-white text-xl font-bold rounded"
+                            >
+                                Ghi nhận thanh toán
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
-    );
+    </div>
+);
 };
 
 // ==========================
@@ -609,15 +589,14 @@ const ThanhToanCoc = () => {
 const DongThongTin = ({ label, value }) => {
     return (
         <tr className="border border-gray-300">
-            <td className="border border-gray-300 px-4 py-3 font-bold text-2xl bg-gray-50 w-[250px]">
+            <td className="border border-gray-300 px-3 py-2 font-bold text-sm bg-gray-50 w-[220px]">
                 {label}
             </td>
 
-            <td className="border border-gray-300 px-4 py-3 text-2xl">
+            <td className="border border-gray-300 px-3 py-2 text-sm">
                 {value || '...'}
             </td>
         </tr>
     );
 };
-
 export default ThanhToanCoc;
