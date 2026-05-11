@@ -1,8 +1,16 @@
 const { poolPromise, mssql } = require('../config/db');
 
-/**
- * --- XÁC NHẬN THUÊ ---
- */
+const LayPhieuDatCocTheoMaPhieuYC = async (MaPhieuYC) => {
+    const pool = await poolPromise;
+    const result = await pool.request()
+        .input('MaPhieuYC', mssql.VarChar(50), MaPhieuYC)
+        .query(`
+            SELECT *
+            FROM PHIEUDATCOC
+            WHERE MaPhieuYC = @MaPhieuYC
+        `)
+    return result.recordset[0] || null;
+};
 
 // Tìm kiếm thông tin yêu cầu thuê dựa trên CCCD để hiển thị lên Form Xác nhận
 const getPendingRequestByCCCD = async (cccd) => {
@@ -27,16 +35,25 @@ const getPendingRequestByCCCD = async (cccd) => {
 };
 
 // Tạo Phiếu Đặt Cọc mới (gọi SP ThemPDC từ File 5)
-const createDeposit = async ({ tienCoc, maKH, maNV, maPhong, maPhieuYC }) => {
+// file: depositModel.js
+const createDeposit = async (tienCoc, maKH, maNV, maPhong, maPhieuYC) => {
+    console.log('Dữ liệu nhận được để tạo Phiếu Đặt Cọc:', { tienCoc, maKH, maNV, maPhong, maPhieuYC }); 
     const pool = await poolPromise;
-    const result = await pool.request()
-        .input('TrangThai', mssql.NVarChar(50), 'Chưa thanh toán')
+    
+    // Tạo request và truyền các biến bắt buộc
+    const request = pool.request()
         .input('TienCoc', mssql.Decimal(18, 2), tienCoc)
         .input('MaKH', mssql.VarChar(50), maKH)
-        .input('MaNV', mssql.VarChar(50), maNV)
         .input('MaPhong', mssql.VarChar(50), maPhong)
-        .input('MaPhieuYC', mssql.VarChar(50), maPhieuYC)
-        .execute('ThemPDC');
+        .input('MaPhieuYC', mssql.VarChar(50), maPhieuYC);
+
+    // Chỉ truyền MaNV nếu nó tồn tại (khác null và undefined)
+    if (maNV !== null && maNV !== undefined) {
+        request.input('MaNV', mssql.VarChar(50), maNV);
+    }
+
+    // Thực thi Stored Procedure
+    const result = await request.execute('ThemPDC');
 
     return result.recordset[0].MaPhieuDatCocMoi;
 };
@@ -68,55 +85,6 @@ const getDepositInfoByCCCD = async (cccd) => {
 };
 
 // Cập nhật trạng thái đã thanh toán (gọi SP CapNhatPDC_DaThanhToan từ File 6)
-const expireOldPendingDeposits = async () => {
-    const pool = await poolPromise;
-    await pool.request().query(`
-        UPDATE PHIEUDATCOC
-        SET TrangThai = N'Đã hủy'
-        WHERE TrangThai = N'Chưa thanh toán'
-            AND DATEDIFF(day, NgayLap, GETDATE()) >= 1
-    `);
-};
-
-const getPendingPayments = async () => {
-    const pool = await poolPromise;
-    await expireOldPendingDeposits();
-
-    const result = await pool.request().query(`
-        SELECT
-            pdc.MaPhieuDatCoc,
-            pdc.TienCoc,
-            pdc.TrangThai,
-            pdc.NgayLap,
-            pdc.HinhThucThanhToan,
-            kh.MaKH,
-            kh.HoTen,
-            kh.CCCD,
-            pdc.MaPhong,
-            pdc.MaPhieuYC,
-            pdc.MaNV
-        FROM PHIEUDATCOC pdc
-        JOIN KHACHHANG kh ON pdc.MaKH = kh.MaKH
-        WHERE pdc.TrangThai = N'Chưa thanh toán'
-            AND NOT EXISTS (
-                SELECT 1 FROM HOPDONG hd WHERE hd.MaPhieuDatCoc = pdc.MaPhieuDatCoc
-            )
-        ORDER BY pdc.NgayLap DESC
-    `);
-    return result.recordset;
-};
-
-const cancelDeposit = async (maPDC) => {
-    const pool = await poolPromise;
-    await pool.request()
-        .input('MaPDC', mssql.VarChar(50), maPDC)
-        .query(`
-            UPDATE PHIEUDATCOC
-            SET TrangThai = N'Đã hủy'
-            WHERE MaPhieuDatCoc = @MaPDC
-        `);
-};
-
 const updatePaymentStatus = async (maPDC, hinhThucThanhToan) => {
     const pool = await poolPromise;
     await pool.request()
@@ -125,11 +93,88 @@ const updatePaymentStatus = async (maPDC, hinhThucThanhToan) => {
         .execute('CapNhatPDC_DaThanhToan');
 };
 
+const GhiNhanThanhToan = async (MaPhieuDatCoc, HinhThucThanhToan) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaPhieuDatCoc', mssql.VarChar(50), MaPhieuDatCoc)
+        // Nhận thêm biến hình thức thanh toán
+        .input('HinhThucThanhToan', mssql.NVarChar(50), HinhThucThanhToan) 
+        .query(`
+            UPDATE PHIEUDATCOC 
+            SET TrangThai = N'Đã thanh toán',
+                HinhThucThanhToan = @HinhThucThanhToan
+            WHERE MaPhieuDatCoc = @MaPhieuDatCoc
+        `);
+};
+
+const DatGiuong = async (maPDC, maGiuong) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaPhieuDatCoc', mssql.VarChar(50), maPDC)
+        .input('MaGiuong', mssql.VarChar(50), maGiuong)
+        .execute('ThemChiTietDatCoc');
+};
+
+const TaoLichHenNhanPhong = async (ngayGioHen, maPhieuYC, maNV) => {
+    // 1. KIỂM TRA NGÀY (Cắt bỏ giây để tránh lỗi quá khứ)
+    const ngayHen = new Date(ngayGioHen);
+    const bayGio = new Date();
+    bayGio.setSeconds(0, 0); 
+
+    if (isNaN(ngayHen.getTime())) throw new Error("Định dạng ngày hẹn không hợp lệ!");
+    if (ngayHen < bayGio) throw new Error("Thời gian hẹn không được ở trong quá khứ!");
+
+    // 2. DỌN DẸP DỮ LIỆU ĐỂ NỐI CHUỖI
+    const thoiGianSach = String(ngayGioHen || '').replace('T', ' ').replace(/\..*$/, '');
+    const pycAnToan = maPhieuYC ? String(maPhieuYC) : 'PYC_TEST';
+    const nvAnToan = maNV ? String(maNV) : 'NV001';
+
+    const pool = await poolPromise;
+
+    try {
+        // 3. TUYỆT CHIÊU: RAW QUERY (Bỏ qua hoàn toàn request.input)
+        // Ghép thẳng dữ liệu vào câu lệnh EXEC. Driver sẽ chỉ thấy 1 chuỗi ký tự duy nhất 
+        // và không thể bắt bẻ kiểu dữ liệu được nữa.
+        const queryStr = `
+            EXEC ThemLichHen 
+                @ThoiGian = '${thoiGianSach}', 
+                @LyDo = N'Hẹn nhận phòng', 
+                @MaPhieuYC = '${pycAnToan}', 
+                @MaNV = '${nvAnToan}'
+        `;
+
+        // In ra màn hình console để bạn dễ dàng nhìn thấy lệnh SQL sẽ được chạy
+        console.log("Đang thực thi SQL:", queryStr);
+
+        // Chạy lệnh bằng .query()
+        const result = await pool.request().query(queryStr);
+        
+        return result.recordset[0].MaLHMoi || result.recordset[0].MaLH; 
+    } catch (err) {
+        console.error('Lỗi thực thi SP ThemLichHen:', err.message);
+        throw err;
+    }
+};
+
+const updateCustomerInfo = async (maKH, data) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaKH', mssql.VarChar(50), maKH)
+        .input('HoTen', mssql.NVarChar(100), data.HoTen)
+        .input('SDT', mssql.VarChar(20), data.SDT)
+        .input('Email', mssql.VarChar(100), data.Email)
+        .input('GioiTinh', mssql.NVarChar(10), data.GioiTinh)
+        .execute('CapNhatThongTinKH');
+};
+
 module.exports = {
+    LayPhieuDatCocTheoMaPhieuYC,
     getPendingRequestByCCCD,
     createDeposit,
+    TaoLichHenNhanPhong,
+    GhiNhanThanhToan,
+    DatGiuong,
     getDepositInfoByCCCD,
-    updatePaymentStatus,
-    getPendingPayments,
-    cancelDeposit
+    updateCustomerInfo,
+    updatePaymentStatus
 };

@@ -11,7 +11,9 @@ exports.getPendingRequest = async (req, res) => {
 
 exports.confirmRental = async (req, res) => {
     try {
-        const maPDC = await DepositModel.createDeposit(req.body);
+        // Cần bóc tách dữ liệu ra trước khi truyền vào
+        const { TienCoc, MaKH, MaNV, MaPhong, MaPhieuYC } = req.body;
+        const maPDC = await DepositModel.createDeposit(TienCoc, MaKH, MaNV, MaPhong, MaPhieuYC);
         res.json({ success: true, maPDC });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -81,6 +83,20 @@ exports.reject = async (req, res) => {
     try {
         await hopDongModel.rejectDeposit(req.params.id);
         res.json({ message: "Thành công" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.updateCustomer = async (req, res) => {
+    try {
+        const { MaKH, HoTen, SDT, Email, GioiTinh } = req.body;
+        if (!MaKH) {
+            return res.status(400).json({ message: "Thiếu mã khách hàng" });
+        }
+
+        await DepositModel.updateCustomerInfo(MaKH, { HoTen, SDT, Email, GioiTinh });
+        res.json({ success: true, message: "Cập nhật thông tin khách hàng thành công" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
