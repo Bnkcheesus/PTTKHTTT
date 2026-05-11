@@ -7,6 +7,8 @@ import BienBan from './pages/manager/BienBan';
 import RoomChecking from './pages/manager/RoomChecking';
 import Reconciliation from './pages/manager/Reconciliation';
 import Management from './pages/manager/Management';
+import AccountingPhatSinh from './pages/accounting/AccountingPhatSinh';
+import AccountingHoanCoc from './pages/accounting/AccountingHoanCoc';
 
 // Import Pages cho Sale Employee
 import RoomRegistration from './pages/saleEmployee/RoomRegistration';
@@ -58,7 +60,7 @@ const RootRedirect = () => {
         return <Navigate to="/dang-ky-phong" replace />;
     }
     if (user.employeeType === 'Accounting') {
-        return <Navigate to="/manager/reconciliation" replace />;
+        return <Navigate to="/accounting/reconciliation" replace />;
     }
 
     return <Navigate to="/login" replace />;
@@ -89,8 +91,8 @@ function App() {
                         </ProtectedRoute>
                     } />
                     <Route path="/manager/reconciliation" element={
-                        <ProtectedRoute allowedRoles={['Manager', 'Accounting']}>
-                            <Reconciliation />
+                        <ProtectedRoute allowedRoles={['Manager']}>
+                            <Reconciliation mode="manager" />
                         </ProtectedRoute>
                     } />
                     <Route path="/manager/management" element={
@@ -120,6 +122,23 @@ function App() {
                     <Route path="/tra-phong" element={
                         <ProtectedRoute allowedRoles={['Sales']}>
                             <TraPhong />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* --- NHÓM ROUTE CỦA ACCOUNTING --- */}
+                    <Route path="/accounting/reconciliation" element={
+                        <ProtectedRoute allowedRoles={['Accounting']}>
+                            <Reconciliation mode="accounting" />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/accounting/phat-sinh" element={
+                        <ProtectedRoute allowedRoles={['Accounting']}>
+                            <AccountingPhatSinh />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/accounting/hoan-coc" element={
+                        <ProtectedRoute allowedRoles={['Accounting']}>
+                            <AccountingHoanCoc />
                         </ProtectedRoute>
                     } />
 

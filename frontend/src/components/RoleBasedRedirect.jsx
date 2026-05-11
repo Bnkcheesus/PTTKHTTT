@@ -14,7 +14,7 @@ export default function RoleBasedRedirect() {
         case 'Sales':
             return <Navigate to="/dang-ky-phong" replace />;
         case 'Accounting':
-            return <Navigate to="/manager/reconciliation" replace />;
+            return <Navigate to="/accounting/reconciliation" replace />;
         default:
             return <Navigate to="/login" replace />;
     }

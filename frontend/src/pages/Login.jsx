@@ -37,7 +37,7 @@ export default function Login() {
             } else if (userData.employeeType === 'Sales') {
                 navigate('/dang-ky-phong');
             } else if (userData.employeeType === 'Accounting') {
-                navigate('/manager/reconciliation');
+                navigate('/accounting/reconciliation');
             } else {
                 setError('Tài khoản không có quyền truy cập hệ thống này.');
             }
