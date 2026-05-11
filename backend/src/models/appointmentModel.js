@@ -51,9 +51,40 @@ const LayChiTietPYCTuMaKH = async (MaKH) => {
     return result.recordset[0] || null; // Lấy chi tiết phiếu yêu cầu của khách đó
 };
 
+const LayDSYCCoLichChoXacNhan = async () => {
+    const pool = await poolPromise;
+    const result = await pool.request().query(`
+        SELECT DISTINCT
+            pyc.MaPhieuYC,
+            kh.MaKH,
+            kh.HoTen,
+            kh.SDT,
+            kh.Email,
+            kh.CCCD,
+            pyc.MaPhong,
+            p.GiaThuePhong,
+            p.TrangThai AS TinhTrangPhong,
+            pyc.HinhThucThue,
+            pyc.SoNguoiDuKien,
+            pyc.ThoiGianDuKien,
+            l.MaLH,
+            l.ThoiGian AS ThoiGianHen
+        FROM LICHHEN l
+        JOIN PHIEUYEUCAU pyc ON l.MaPhieuYC = pyc.MaPhieuYC
+        JOIN KHACHHANG kh ON pyc.MaKH = kh.MaKH
+        LEFT JOIN PHONG p ON pyc.MaPhong = p.MaPhong
+        WHERE NOT EXISTS (
+            SELECT 1 FROM PHIEUDATCOC pdc WHERE pdc.MaPhieuYC = pyc.MaPhieuYC
+        )
+        ORDER BY l.ThoiGian DESC
+    `);
+    return result.recordset;
+};
+
 module.exports = { 
     LayDSKhachChuaHen,
     KiemTraTrungLich,
     ThemLichHen,
-    LayChiTietPYCTuMaKH
+    LayChiTietPYCTuMaKH,
+    LayDSYCCoLichChoXacNhan
 };

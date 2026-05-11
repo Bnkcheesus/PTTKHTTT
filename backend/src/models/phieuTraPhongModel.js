@@ -3,8 +3,26 @@ const { poolPromise, mssql } = require('../config/db');
 // Gọi SP LayDSPDCDeTraPhong: Lấy danh sách phiếu đặt cọc để trả phòng
 const getContractsForReturn = async () => {
     const pool = await poolPromise;
-    // Sử dụng SP bạn đã định nghĩa trong 7_sp_HopDong.sql
-    const result = await pool.request().execute('LayDSPDCDeTraPhong');
+    const result = await pool.request().query(`
+        SELECT
+            PDC.MaPhieuDatCoc,
+            ISNULL(HD.MaHopDong, N'Không có') AS MaHopDong,
+            HD.NgayBatDau,
+            HD.NgayKetThuc,
+            KH.HoTen,
+            PHONG.MaPhong
+        FROM PHIEUDATCOC PDC
+        JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH
+        LEFT JOIN HOPDONG HD ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+        LEFT JOIN CHITIETDATCOC CTDC ON CTDC.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+        LEFT JOIN GIUONG G ON CTDC.MaGiuong = G.MaGiuong
+        LEFT JOIN PHONG ON PHONG.MaPhong = G.MaPhong
+        WHERE PDC.TrangThai <> N'Đã trả phòng'
+          AND NOT EXISTS (
+              SELECT 1 FROM PHIEUTRAPHONG PTR
+              WHERE PTR.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+          )
+    `);
     return result.recordset;
 };
 

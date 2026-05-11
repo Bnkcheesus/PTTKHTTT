@@ -363,6 +363,7 @@ BEGIN
     LEFT JOIN GIUONG G ON CTDC.MaGiuong = G.MaGiuong
     LEFT JOIN PHONG ON PHONG.MaPhong = G.MaPhong
     WHERE PDC.TrangThai <> N'Đã trả phòng'
+    AND PDC.MaPhieuDatCoc NOT IN (SELECT MaPhieuDatCoc FROM PHIEUTRAPHONG)
 END;
 
 GO

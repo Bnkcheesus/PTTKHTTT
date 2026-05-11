@@ -11,64 +11,94 @@ const formatCurrency = (value) => {
     }).format(value || 0);
 };
 
+const getRemainingHours = (dateString) => {
+    if (!dateString) return 0;
+    const created = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - created.getTime();
+    const hoursPassed = Math.floor(diff / (1000 * 60 * 60));
+    return Math.max(0, 24 - hoursPassed);
+};
+
 const ThanhToanCoc = () => {
     const [mode, setMode] = useState('deposit');
-    const [cccd, setCccd] = useState('');
-    const [depositData, setDepositData] = useState(null);
+    const [pendingDeposits, setPendingDeposits] = useState([]);
     const [refunds, setRefunds] = useState([]);
-    const [hinhThuc, setHinhThuc] = useState('Tiền mặt');
-    const [refundMethods, setRefundMethods] = useState({});
+    const [paymentMethods, setPaymentMethods] = useState({});
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    const loadPendingDeposits = async () => {
+        setIsLoading(true);
+        setError('');
+        setMessage('');
+
+        try {
+            const data = await depositService.getPendingPayments();
+            setPendingDeposits(data || []);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Không thể tải danh sách đặt cọc.');
+            setPendingDeposits([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const loadRefunds = async () => {
         setIsLoading(true);
         setError('');
+        setMessage('');
 
         try {
             const data = await reconciliationService.getSalesRefunds();
             setRefunds(data || []);
         } catch (err) {
             setError(err.response?.data?.message || 'Không thể tải danh sách hồ sơ hoàn cọc.');
+            setRefunds([]);
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        if (mode === 'refund') {
+        if (mode === 'deposit') {
+            loadPendingDeposits();
+        } else {
             loadRefunds();
         }
     }, [mode]);
 
-    const handleSearch = async () => {
+    const handlePayDeposit = async (maPDC) => {
+        setIsLoading(true);
         setError('');
         setMessage('');
 
         try {
-            const result = await depositService.getInfo(cccd);
-            setDepositData(result);
+            const hinhThuc = paymentMethods[maPDC] || 'Tiền mặt';
+            await depositService.pay(maPDC, hinhThuc);
+            setMessage(`Thanh toán cọc thành công cho ${maPDC}.`);
+            await loadPendingDeposits();
         } catch (err) {
-            setError('Không tìm thấy thông tin đặt cọc.');
-            setDepositData(null);
+            setError(err.response?.data?.error || 'Thanh toán cọc thất bại.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const handlePay = async () => {
-        if (!depositData) return;
+    const handleCancelDeposit = async (maPDC) => {
+        setIsLoading(true);
         setError('');
         setMessage('');
 
         try {
-            const res = await depositService.pay(depositData.MaPhieuDatCoc, hinhThuc);
-            if (res.success) {
-                setMessage('Ghi nhận thanh toán cọc thành công.');
-                setDepositData(null);
-                setCccd('');
-            }
+            await depositService.cancel(maPDC);
+            setMessage(`Đã hủy phiếu đặt cọc ${maPDC}.`);
+            await loadPendingDeposits();
         } catch (err) {
-            setError('Ghi nhận thanh toán cọc thất bại.');
+            setError(err.response?.data?.error || 'Hủy đặt cọc thất bại.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -89,7 +119,7 @@ const ThanhToanCoc = () => {
     };
 
     const handleSubmitRefund = async (maBang) => {
-        const method = refundMethods[maBang] || 'Tiền mặt';
+        const method = paymentMethods[maBang] || 'Tiền mặt';
         setIsLoading(true);
         setError('');
         setMessage('');
@@ -139,50 +169,93 @@ const ThanhToanCoc = () => {
                     <div className="space-y-6">
                         <div className="bg-white rounded-lg shadow-md p-6">
                             <h2 className="text-2xl font-bold text-gray-800">Thanh toán đặt cọc</h2>
-                            <p className="mt-2 text-gray-600">Ghi nhận tiền đặt cọc ban đầu khi khách vào.</p>
+                            <p className="mt-2 text-gray-600">Danh sách phiếu đặt cọc cần thanh toán trong vòng 24 giờ.</p>
                         </div>
 
-                        <div className="flex gap-2">
-                            <input
-                                className="w-80 rounded border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none"
-                                placeholder="CCCD khách..."
-                                value={cccd}
-                                onChange={(e) => setCccd(e.target.value)}
-                            />
-                            <button onClick={handleSearch} className="rounded bg-gray-800 px-6 py-2 text-white">
-                                Tìm
-                            </button>
+                        <div className="bg-white rounded-lg shadow-md p-6 overflow-x-auto">
+                            <table className="min-w-full text-left text-sm text-gray-700">
+                                <thead>
+                                    <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+                                        <th className="px-3 py-3">Mã phiếu</th>
+                                        <th className="px-3 py-3">Khách</th>
+                                        <th className="px-3 py-3">CCCD</th>
+                                        <th className="px-3 py-3">Phòng</th>
+                                        <th className="px-3 py-3">Tiền cọc</th>
+                                        <th className="px-3 py-3">Người tạo</th>
+                                        <th className="px-3 py-3">Hạn thanh toán</th>
+                                        <th className="px-3 py-3">Phương thức</th>
+                                        <th className="px-3 py-3">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {pendingDeposits.length > 0 ? (
+                                        pendingDeposits.map((item) => {
+                                            const remainingHours = getRemainingHours(item.NgayLap);
+                                            const isExpired = remainingHours <= 0;
+                                            return (
+                                                <tr key={item.MaPhieuDatCoc} className="border-b border-gray-100">
+                                                    <td className="px-3 py-3 font-medium text-gray-900">{item.MaPhieuDatCoc}</td>
+                                                    <td className="px-3 py-3">{item.HoTen}</td>
+                                                    <td className="px-3 py-3">{item.CCCD}</td>
+                                                    <td className="px-3 py-3">{item.MaPhong || 'N/A'}</td>
+                                                    <td className="px-3 py-3 font-semibold text-green-700">{formatCurrency(item.TienCoc)}</td>
+                                                    <td className="px-3 py-3">{item.MaNV || 'N/A'}</td>
+                                                    <td className="px-3 py-3">
+                                                        {isExpired ? (
+                                                            <span className="rounded-full bg-red-100 px-2 py-1 text-xs text-red-700">Hết hạn</span>
+                                                        ) : (
+                                                            <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">Còn {remainingHours} giờ</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-3 py-3">
+                                                        <div className="space-y-1">
+                                                            <label className="flex items-center gap-2 text-xs">
+                                                                <input
+                                                                    type="radio"
+                                                                    checked={(paymentMethods[item.MaPhieuDatCoc] || 'Tiền mặt') === 'Tiền mặt'}
+                                                                    onChange={() => setPaymentMethods((prev) => ({ ...prev, [item.MaPhieuDatCoc]: 'Tiền mặt' }))}
+                                                                />
+                                                                Tiền mặt
+                                                            </label>
+                                                            <label className="flex items-center gap-2 text-xs">
+                                                                <input
+                                                                    type="radio"
+                                                                    checked={paymentMethods[item.MaPhieuDatCoc] === 'Chuyển khoản'}
+                                                                    onChange={() => setPaymentMethods((prev) => ({ ...prev, [item.MaPhieuDatCoc]: 'Chuyển khoản' }))}
+                                                                />
+                                                                Chuyển khoản
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-3 space-y-2">
+                                                        <button
+                                                            onClick={() => handlePayDeposit(item.MaPhieuDatCoc)}
+                                                            disabled={isLoading || isExpired}
+                                                            className="w-full rounded bg-[#2A754B] px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                                        >
+                                                            Thanh toán
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleCancelDeposit(item.MaPhieuDatCoc)}
+                                                            disabled={isLoading}
+                                                            className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        >
+                                                            Hủy
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="9" className="p-6 text-center text-gray-500">
+                                                Không có phiếu đặt cọc cần thanh toán trong 24 giờ.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
-
-                        {depositData && (
-                            <div className="bg-white rounded-lg shadow-md p-6">
-                                <div className="grid gap-8 md:grid-cols-2">
-                                    <div>
-                                        <h3 className="text-3xl font-bold text-[#2A754B]">
-                                            {formatCurrency(depositData.TienCoc)}
-                                        </h3>
-                                        <p className="mt-4">Mã phiếu: <span className="font-semibold">{depositData.MaPhieuDatCoc}</span></p>
-                                        <p>Khách hàng: <span className="font-semibold">{depositData.HoTen}</span></p>
-                                        <p>Phòng: <span className="font-semibold">{depositData.MaPhong || 'N/A'}</span></p>
-                                        <p>Trạng thái: <span className="font-semibold text-red-600">{depositData.TrangThai}</span></p>
-                                    </div>
-                                    <div>
-                                        <p className="mb-2 font-bold">Hình thức thanh toán</p>
-                                        <label className="mb-2 block rounded border p-2">
-                                            <input type="radio" checked={hinhThuc === 'Tiền mặt'} onChange={() => setHinhThuc('Tiền mặt')} /> Tiền mặt
-                                        </label>
-                                        <label className="block rounded border p-2">
-                                            <input type="radio" checked={hinhThuc === 'Chuyển khoản'} onChange={() => setHinhThuc('Chuyển khoản')} /> Chuyển khoản
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className="mt-6 flex justify-end">
-                                    <button onClick={handlePay} className="rounded bg-[#2A754B] px-8 py-2 font-bold text-white">
-                                        Ghi nhận thanh toán
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 ) : (
                     <div className="space-y-6">
@@ -244,18 +317,18 @@ const ThanhToanCoc = () => {
                                                         </td>
                                                         <td className="px-3 py-3">
                                                             <div className="space-y-1">
-                                                                <label className="block">
+                                                                <label className="block text-xs">
                                                                     <input
                                                                         type="radio"
-                                                                        checked={(refundMethods[item.MaBang] || 'Tiền mặt') === 'Tiền mặt'}
-                                                                        onChange={() => setRefundMethods((prev) => ({ ...prev, [item.MaBang]: 'Tiền mặt' }))}
+                                                                        checked={(paymentMethods[item.MaBang] || 'Tiền mặt') === 'Tiền mặt'}
+                                                                        onChange={() => setPaymentMethods((prev) => ({ ...prev, [item.MaBang]: 'Tiền mặt' }))}
                                                                     /> Tiền mặt
                                                                 </label>
-                                                                <label className="block">
+                                                                <label className="block text-xs">
                                                                     <input
                                                                         type="radio"
-                                                                        checked={refundMethods[item.MaBang] === 'Chuyển khoản'}
-                                                                        onChange={() => setRefundMethods((prev) => ({ ...prev, [item.MaBang]: 'Chuyển khoản' }))}
+                                                                        checked={paymentMethods[item.MaBang] === 'Chuyển khoản'}
+                                                                        onChange={() => setPaymentMethods((prev) => ({ ...prev, [item.MaBang]: 'Chuyển khoản' }))}
                                                                     /> Chuyển khoản
                                                                 </label>
                                                             </div>
@@ -263,10 +336,10 @@ const ThanhToanCoc = () => {
                                                         <td className="px-3 py-3">
                                                             <button
                                                                 onClick={() => handleSubmitRefund(item.MaBang)}
-                                                                disabled={isLoading || !isLiquidated}
-                                                                className="rounded bg-[#2A754B] px-3 py-2 text-xs font-semibold text-white hover:bg-[#235d3e] disabled:cursor-not-allowed disabled:opacity-50"
+                                                                disabled={isLoading || isLiquidated}
+                                                                className="rounded bg-[#2A754B] px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                                                             >
-                                                                Xác nhận
+                                                                Gửi hoàn cọc
                                                             </button>
                                                         </td>
                                                     </tr>
@@ -274,9 +347,7 @@ const ThanhToanCoc = () => {
                                             })
                                         ) : (
                                             <tr>
-                                                <td colSpan="8" className="px-3 py-4 text-sm text-gray-500">
-                                                    Không có hồ sơ nào chờ hoàn cọc.
-                                                </td>
+                                                <td colSpan="8" className="p-4 text-center text-gray-500">Không có hồ sơ hoàn cọc đang chờ xử lý.</td>
                                             </tr>
                                         )}
                                     </tbody>

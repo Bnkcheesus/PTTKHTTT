@@ -1,4 +1,5 @@
 const DepositModel = require('../models/depositModel');
+const hopDongModel = require('../models/hopDongModel');
 
 exports.getPendingRequest = async (req, res) => {
     try {
@@ -29,6 +30,24 @@ exports.processPayment = async (req, res) => {
         await DepositModel.updatePaymentStatus(maPDC, hinhThuc);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.getPendingPayments = async (req, res) => {
+    try {
+        const data = await DepositModel.getPendingPayments();
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.cancelDeposit = async (req, res) => {
+    try {
+        await DepositModel.cancelDeposit(req.params.id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };
 
 exports.getPaid = async (req, res) => {

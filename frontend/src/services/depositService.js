@@ -29,8 +29,23 @@ const depositService = {
         return response.data;
     },
 
+    confirm: async (data) => {
+        const response = await axios.post(`${DEPOSIT_API_URL}/confirm`, data);
+        return response.data;
+    },
+
     getInfo: async (cccd) => {
         const response = await axios.get(`${DEPOSIT_API_URL}/info/${cccd}`);
+        return response.data;
+    },
+
+    getPendingPayments: async () => {
+        const response = await axios.get(`${DEPOSIT_API_URL}/pending-payments`);
+        return response.data;
+    },
+
+    cancel: async (maPDC) => {
+        const response = await axios.post(`${DEPOSIT_API_URL}/cancel/${maPDC}`);
         return response.data;
     },
 

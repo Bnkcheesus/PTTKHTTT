@@ -4,13 +4,24 @@ const {
     LayDSKhachChuaHen, 
     KiemTraTrungLich, 
     ThemLichHen,
-    LayChiTietPYCTuMaKH
+    LayChiTietPYCTuMaKH,
+    LayDSYCCoLichChoXacNhan
 } = require('../models/appointmentModel');
 
 // Lấy danh sách khách chưa có lịch hẹn
 router.get('/pending', async (req, res) => {
     try {
         const requests = await LayDSKhachChuaHen();
+        res.json(requests);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Lấy danh sách khách đã có lịch hẹn và chờ xác nhận thuê
+router.get('/to-confirm', async (req, res) => {
+    try {
+        const requests = await LayDSYCCoLichChoXacNhan();
         res.json(requests);
     } catch (err) {
         res.status(500).json({ error: err.message });

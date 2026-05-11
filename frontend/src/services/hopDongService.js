@@ -3,6 +3,12 @@ import axios from 'axios';
 const API_URL = 'http://localhost:5000/api/hopdong';
 
 const hopDongService = {
+    // Get paid deposits without contracts
+    getPaidDepositsNoContract: async () => {
+        const res = await axios.get(`${API_URL}/deposits-paid`);
+        return res.data;
+    },
+
     // Get approved deposits without contracts
     getApprovedDepositsNoContract: async () => {
         const res = await axios.get(`${API_URL}/deposits-approved`);

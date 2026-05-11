@@ -30,7 +30,7 @@ const getPendingRequestByCCCD = async (cccd) => {
 const createDeposit = async ({ tienCoc, maKH, maNV, maPhong, maPhieuYC }) => {
     const pool = await poolPromise;
     const result = await pool.request()
-        .input('TrangThai', mssql.NVarChar(50), 'Chưa xác nhận')
+        .input('TrangThai', mssql.NVarChar(50), 'Chưa thanh toán')
         .input('TienCoc', mssql.Decimal(18, 2), tienCoc)
         .input('MaKH', mssql.VarChar(50), maKH)
         .input('MaNV', mssql.VarChar(50), maNV)
@@ -68,6 +68,55 @@ const getDepositInfoByCCCD = async (cccd) => {
 };
 
 // Cập nhật trạng thái đã thanh toán (gọi SP CapNhatPDC_DaThanhToan từ File 6)
+const expireOldPendingDeposits = async () => {
+    const pool = await poolPromise;
+    await pool.request().query(`
+        UPDATE PHIEUDATCOC
+        SET TrangThai = N'Đã hủy'
+        WHERE TrangThai = N'Chưa thanh toán'
+            AND DATEDIFF(day, NgayLap, GETDATE()) >= 1
+    `);
+};
+
+const getPendingPayments = async () => {
+    const pool = await poolPromise;
+    await expireOldPendingDeposits();
+
+    const result = await pool.request().query(`
+        SELECT
+            pdc.MaPhieuDatCoc,
+            pdc.TienCoc,
+            pdc.TrangThai,
+            pdc.NgayLap,
+            pdc.HinhThucThanhToan,
+            kh.MaKH,
+            kh.HoTen,
+            kh.CCCD,
+            pdc.MaPhong,
+            pdc.MaPhieuYC,
+            pdc.MaNV
+        FROM PHIEUDATCOC pdc
+        JOIN KHACHHANG kh ON pdc.MaKH = kh.MaKH
+        WHERE pdc.TrangThai = N'Chưa thanh toán'
+            AND NOT EXISTS (
+                SELECT 1 FROM HOPDONG hd WHERE hd.MaPhieuDatCoc = pdc.MaPhieuDatCoc
+            )
+        ORDER BY pdc.NgayLap DESC
+    `);
+    return result.recordset;
+};
+
+const cancelDeposit = async (maPDC) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaPDC', mssql.VarChar(50), maPDC)
+        .query(`
+            UPDATE PHIEUDATCOC
+            SET TrangThai = N'Đã hủy'
+            WHERE MaPhieuDatCoc = @MaPDC
+        `);
+};
+
 const updatePaymentStatus = async (maPDC, hinhThucThanhToan) => {
     const pool = await poolPromise;
     await pool.request()
@@ -80,5 +129,7 @@ module.exports = {
     getPendingRequestByCCCD,
     createDeposit,
     getDepositInfoByCCCD,
-    updatePaymentStatus
+    updatePaymentStatus,
+    getPendingPayments,
+    cancelDeposit
 };

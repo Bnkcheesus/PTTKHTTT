@@ -179,7 +179,10 @@ const TraPhong = () => {
                 <div className="grid grid-cols-3 gap-8">
                     {/* LEFT: Contract information */}
                     <div className="col-span-2">
-                        <h2 className="font-bold mb-4">Thông tin khách hàng và phiếu đặt cọc</h2>
+                        <h2 className="font-bold mb-2">Thông tin khách hàng và phiếu đặt cọc</h2>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Chỉ hiển thị phiếu đặt cọc chưa có phiếu trả phòng.
+                        </p>
                         <div className="p-4 rounded shadow-sm mb-8" style={{ backgroundColor: '#d9ead3' }}>
                             {/* Search bar */}
                             <div className="flex border border-gray-400 bg-white mb-2">
