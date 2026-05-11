@@ -61,7 +61,7 @@ GO
 CREATE OR ALTER PROCEDURE ThemPDC
     @TienCoc DECIMAL(18, 2),
     @MaKH VARCHAR(50),
-    @MaNV VARCHAR(50),
+    @MaNV VARCHAR(50) = NULL, --Default to null
     @MaPhong VARCHAR(50),
     @MaPhieuYC VARCHAR(50)
 AS
@@ -151,3 +151,20 @@ BEGIN
     VALUES (@MaPhieuDatCoc, @MaGiuong);
 END
 GO
+CREATE OR ALTER PROCEDURE CapNhatThongTinKH
+    @MaKH VARCHAR(50),
+    @HoTen NVARCHAR(100),
+    @SDT VARCHAR(20),
+    @Email VARCHAR(100),
+    @GioiTinh NVARCHAR(10)
+AS
+BEGIN
+    UPDATE KHACHHANG
+    SET HoTen = @HoTen, 
+        SDT = @SDT, 
+        Email = @Email, 
+        GioiTinh = @GioiTinh
+    WHERE MaKH = @MaKH
+END
+GO
+

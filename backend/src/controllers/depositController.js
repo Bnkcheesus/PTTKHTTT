@@ -66,3 +66,17 @@ exports.reject = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+exports.updateCustomer = async (req, res) => {
+    try {
+        const { MaKH, HoTen, SDT, Email, GioiTinh } = req.body;
+        if (!MaKH) {
+            return res.status(400).json({ message: "Thiếu mã khách hàng" });
+        }
+
+        await DepositModel.updateCustomerInfo(MaKH, { HoTen, SDT, Email, GioiTinh });
+        res.json({ success: true, message: "Cập nhật thông tin khách hàng thành công" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

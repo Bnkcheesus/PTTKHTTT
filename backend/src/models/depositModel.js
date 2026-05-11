@@ -105,14 +105,25 @@ const TaoLichHenNhanPhong = async (ngayGioHen, maPhieuYC) => {
 
     //const thoiGianSach = ngayGioHen.replace('T', ' ').replace(/\..*$/, '');
     console.log('Đang tạo lịch hẹn với thời gian:', ngayGioHen, 'và mã phiếu yêu cầu:', maPhieuYC); // Debug log
-    
+
     const result = await pool.request()
         .input('ThoiGian', mssql.DateTime, ngayGioHen)
         .input('LyDo', mssql.NVarChar(255), 'Hẹn nhận phòng')
-        .input('MaPhieuYC', mssql.VarChar(50), maPhieuYC)   
+        .input('MaPhieuYC', mssql.VarChar(50), maPhieuYC)
         .input('MaNV', mssql.VarChar(50), null) // Tạm thời gán MaNV cố định, có thể thay đổi sau
         .execute('ThemLichHen');
     return result.recordset[0].MaLH;
+};
+
+const updateCustomerInfo = async (maKH, data) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaKH', mssql.VarChar(50), maKH)
+        .input('HoTen', mssql.NVarChar(100), data.HoTen)
+        .input('SDT', mssql.VarChar(20), data.SDT)
+        .input('Email', mssql.VarChar(100), data.Email)
+        .input('GioiTinh', mssql.NVarChar(10), data.GioiTinh)
+        .execute('CapNhatThongTinKH');
 };
 
 module.exports = {
@@ -123,5 +134,6 @@ module.exports = {
     GhiNhanThanhToan,
     DatGiuong,
     getDepositInfoByCCCD,
+    updateCustomerInfo,
     updatePaymentStatus
 };
