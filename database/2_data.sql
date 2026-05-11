@@ -575,16 +575,6 @@ INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc,
 INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc, MaKH, MaNV) VALUES ('PDC069', '2023-08-29', N'Cọc giữ chỗ', N'Đã thanh toán', 2500000, 'KH008', 'NV004');
 INSERT INTO PHIEUDATCOC (MaPhieuDatCoc, NgayLap, LoaiDatCoc, TrangThai, TienCoc, MaKH, MaNV) VALUES ('PDC070', '2023-02-12', N'Cọc giữ chỗ', N'Đã thanh toán', 3500000, 'KH050', 'NV005');
 
-
-UPDATE PHIEUDATCOC
-SET MaPhieuYC = (
-    SELECT TOP 1 PYC.MaPhieuYC
-    FROM PHIEUYEUCAU PYC
-    WHERE PYC.MaKH = PHIEUDATCOC.MaKH
-    ORDER BY PYC.MaPhieuYC
-)
-WHERE MaPhieuYC IS NULL;
-
 -- Bảng CHITIETDATCOC
 INSERT INTO CHITIETDATCOC (MaPhieuDatCoc, MaGiuong) VALUES ('PDC001', 'P004_G3');
 INSERT INTO CHITIETDATCOC (MaPhieuDatCoc, MaGiuong) VALUES ('PDC002', 'P027_G2');
@@ -1026,14 +1016,3 @@ INSERT INTO HOADON (MaHD, LoaiHoaDon, SoTien, NgayThanhToan, MaPhieuTra) VALUES 
 INSERT INTO HOADON (MaHD, LoaiHoaDon, SoTien, NgayThanhToan, MaPhieuTra) VALUES ('HDON048', N'Thanh toán đợt cuối', 800000, '2024-04-02', 'PTP048');
 INSERT INTO HOADON (MaHD, LoaiHoaDon, SoTien, NgayThanhToan, MaPhieuTra) VALUES ('HDON049', N'Thanh toán đợt cuối', 400000, '2024-06-15', 'PTP049');
 INSERT INTO HOADON (MaHD, LoaiHoaDon, SoTien, NgayThanhToan, MaPhieuTra) VALUES ('HDON050', N'Thanh toán đợt cuối', 700000, '2024-05-08', 'PTP050');
-
--- Cập nhật phòng thành 'Đã cho thuê' nếu không còn giường trống nào
-UPDATE PHONG
-SET TrangThai = N'Đã cho thuê'
-WHERE MaPhong IN (
-    SELECT MaPhong
-    FROM GIUONG
-    GROUP BY MaPhong
-    HAVING COUNT(*) > 0 
-    AND COUNT(CASE WHEN TrangThai = N'Trống' THEN 1 END) = 0
-);
