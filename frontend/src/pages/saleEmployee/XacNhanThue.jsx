@@ -3,8 +3,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import SaleNavbar from '../../components/SaleNavbar';
+import { useAuth } from '../../context/AuthContext';
 
 const XacNhanThue = () => {
+    const { user } = useAuth();
     const [cccd, setCccd] = useState('');
     const [duLieu, setDuLieu] = useState(null);
     const [dangTai, setDangTai] = useState(false);
@@ -84,7 +86,8 @@ const XacNhanThue = () => {
                 {
                     TienCoc: duLieu.phong.GiaThuePhong * 2,
                     MaKH: duLieu.khachHang.MaKH,
-                    MaNV: null,
+                    // Lấy MaNV từ user (thêm dấu ? để phòng hờ trường hợp bị rớt đăng nhập)
+                    MaNV: user?.MaNV, 
                     MaPhong: duLieu.phong.MaPhong,
                     MaPhieuYC: duLieu.phieuYeuCau.MaPhieuYC,
                 }
@@ -99,7 +102,8 @@ const XacNhanThue = () => {
             setTimeout(() => { setThongBao({ hienThi: false, noiDung: '' }); }, 3000);
         } catch (error) {
             console.error(error);
-            alert('Xác nhận thất bại!');
+            const errorMsg = error.response?.data || error.message || 'Xác nhận thất bại!';
+            alert('Có lỗi xảy ra: ' + errorMsg);
         }
     };
 

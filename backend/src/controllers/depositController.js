@@ -10,7 +10,9 @@ exports.getPendingRequest = async (req, res) => {
 
 exports.confirmRental = async (req, res) => {
     try {
-        const maPDC = await DepositModel.createDeposit(req.body);
+        // Cần bóc tách dữ liệu ra trước khi truyền vào
+        const { TienCoc, MaKH, MaNV, MaPhong, MaPhieuYC } = req.body;
+        const maPDC = await DepositModel.createDeposit(TienCoc, MaKH, MaNV, MaPhong, MaPhieuYC);
         res.json({ success: true, maPDC });
     } catch (err) { res.status(500).json({ error: err.message }); }
 };

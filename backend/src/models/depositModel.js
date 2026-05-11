@@ -35,16 +35,25 @@ const getPendingRequestByCCCD = async (cccd) => {
 };
 
 // Tạo Phiếu Đặt Cọc mới (gọi SP ThemPDC từ File 5)
+// file: depositModel.js
 const createDeposit = async (tienCoc, maKH, maNV, maPhong, maPhieuYC) => {
-    console.log('Dữ liệu nhận được để tạo Phiếu Đặt Cọc:', { tienCoc, maKH, maNV, maPhong, maPhieuYC }); // Debug log
+    console.log('Dữ liệu nhận được để tạo Phiếu Đặt Cọc:', { tienCoc, maKH, maNV, maPhong, maPhieuYC }); 
     const pool = await poolPromise;
-    const result = await pool.request()
+    
+    // Tạo request và truyền các biến bắt buộc
+    const request = pool.request()
         .input('TienCoc', mssql.Decimal(18, 2), tienCoc)
         .input('MaKH', mssql.VarChar(50), maKH)
-        .input('MaNV', mssql.VarChar(50), maNV)
         .input('MaPhong', mssql.VarChar(50), maPhong)
-        .input('MaPhieuYC', mssql.VarChar(50), maPhieuYC)
-        .execute('ThemPDC');
+        .input('MaPhieuYC', mssql.VarChar(50), maPhieuYC);
+
+    // Chỉ truyền MaNV nếu nó tồn tại (khác null và undefined)
+    if (maNV !== null && maNV !== undefined) {
+        request.input('MaNV', mssql.VarChar(50), maNV);
+    }
+
+    // Thực thi Stored Procedure
+    const result = await request.execute('ThemPDC');
 
     return result.recordset[0].MaPhieuDatCocMoi;
 };
