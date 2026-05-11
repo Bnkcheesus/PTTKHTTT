@@ -250,9 +250,9 @@ CREATE OR ALTER PROCEDURE LapPhieuKiemTra
     @MaPhieuTra VARCHAR(50) = NULL,
     @SoDienDung FLOAT = 0,
     @SoNuocDung FLOAT = 0,
-    @TienThueNo DECIMAL(18,2),
-    @TienPhat DECIMAL(18,2),
-    @MaNV VARCHAR(50)
+    @TienThueNo DECIMAL(18,2) = 0,
+    @TienPhat DECIMAL(18,2) = 0,
+    @MaNV VARCHAR(50) = NULL
 AS
 BEGIN
     IF @TienThueNo < 0
