@@ -18,6 +18,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/rooms', require('./routes/roomRoutes'));
 app.use('/api/hopdong', require('./routes/hopDongRoutes'));
 app.use('/api/customers', require('./routes/customerRoutes'));
+app.use('/api/xacnhanthue', require('./routes/xacNhanThueRoutes'));
 app.use('/api/deposits', require('./routes/depositRoutes'));
 app.use('/api/appointments', require('./routes/appointmentRoutes'));
 app.use('/api/phieutraphong', require('./routes/phieuTraPhongRoutes'));
