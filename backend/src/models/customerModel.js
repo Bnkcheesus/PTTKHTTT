@@ -14,14 +14,6 @@ const getCustomerById = async (MaKH) => {
     return result.recordset[0] || null;
 };
 
-const getCustomerByCCCD = async (CCCD) => {
-    const pool = await poolPromise;
-    const result = await pool.request()
-        .input('CCCD', mssql.VarChar(20), CCCD)
-        .query('SELECT * FROM KHACHHANG WHERE CCCD = @CCCD');
-    return result.recordset[0] || null;
-};
-
 const searchCustomers = async (searchTerm) => {
     const pool = await poolPromise;
     const result = await pool.request()
@@ -91,7 +83,6 @@ const LayThongTinKH = async (CCCD) => {
 module.exports = {
     getAllCustomers,
     getCustomerById,
-    getCustomerByCCCD,
     searchCustomers,
     ThemKH,
     ThemNhom,
