@@ -1,329 +1,168 @@
-// src/pages/Sales/XacNhanThue.jsx
-
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import SaleNavbar from '../../components/SaleNavbar';
+import appointmentService from '../../services/appointmentService';
+import depositService from '../../services/depositService';
 import { useAuth } from '../../context/AuthContext';
 
 const XacNhanThue = () => {
     const { user } = useAuth();
-    const [cccd, setCccd] = useState('');
-    const [duLieu, setDuLieu] = useState(null);
-    const [dangTai, setDangTai] = useState(false);
+    const [pendingSchedules, setPendingSchedules] = useState([]);
+    const [selectedSchedule, setSelectedSchedule] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [message, setMessage] = useState('');
 
-    // --- NEW STATES FOR UPDATE MODAL ---
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formSua, setFormSua] = useState({
-        HoTen: '',
-        SDT: '',
-        Email: '',
-        GioiTinh: '',
-        CCCD: ''
-    });
-    const [updateSuccess, setUpdateSuccess] = useState(false);
-
-    const [thongBao, setThongBao] = useState({
-        hienThi: false,
-        noiDung: '',
-    });
-
-    const TimKhachHang = async () => {
-        if (!cccd.trim()) {
-            alert('Vui lòng nhập CCCD');
-            return;
+    const loadPending = async () => {
+        try {
+            const data = await appointmentService.getPendingConfirmations();
+            setPendingSchedules(data);
+        } catch (err) {
+            setPendingSchedules([]);
+            setMessage('Không thể tải danh sách xác nhận thuê.');
         }
+    };
+
+    useEffect(() => {
+        loadPending();
+    }, []);
+
+    const handleConfirm = async () => {
+        if (!selectedSchedule) return;
+        setLoading(true);
+        setMessage('');
 
         try {
-            setDangTai(true);
-            const response = await axios.get(`http://localhost:5000/api/xacnhanthue/${cccd}`);
-            setDuLieu(response.data);
-
-            // Pre-fill the update form when customer is found
-            setFormSua({
-                HoTen: response.data.khachHang.HoTen,
-                SDT: response.data.khachHang.SDT,
-                Email: response.data.khachHang.Email,
-                GioiTinh: response.data.khachHang.GioiTinh,
-                CCCD: response.data.khachHang.CCCD
+            const res = await depositService.confirm({
+                maKH: selectedSchedule.MaKH,
+                maPhong: selectedSchedule.MaPhong,
+                maPhieuYC: selectedSchedule.MaPhieuYC,
+                tienCoc: 6000000,
+                maNV: user?.MaNV || 'NV001'
             });
-
-        } catch (error) {
-            console.error(error);
-            alert(error.response?.data?.error || 'Đã xảy ra lỗi');
-            setDuLieu(null);
+            if (res.success) {
+                setShowSuccess(true);
+                setSelectedSchedule(null);
+                await loadPending();
+            }
+        } catch (err) {
+            setMessage(err.response?.data?.error || 'Xác nhận thuê thất bại.');
         } finally {
-            setDangTai(false);
+            setLoading(false);
         }
-    };
-
-    // --- LOGIC TO SUBMIT UPDATE ---
-    const HandleUpdateKH = async () => {
-        try {
-            // Replace with your actual update API endpoint
-            await axios.post(`http://localhost:5000/api/deposits/update-customer`, {
-                MaKH: duLieu.khachHang.MaKH,
-                ...formSua
-            });
-
-            setUpdateSuccess(true);
-
-            // Refresh main data and close modal after 2 seconds
-            setTimeout(() => {
-                setUpdateSuccess(false);
-                setIsModalOpen(false);
-                TimKhachHang();
-            }, 2000);
-
-        } catch (error) {
-            alert('Lỗi cập nhật: ' + (error.response?.data?.message || error.message));
-        }
-    };
-
-    const XacNhanThuePhong = async () => {
-        try {
-            await axios.post(
-                `http://localhost:5000/api/xacnhanthue/confirm`,
-                {
-                    TienCoc: duLieu.phong.GiaThuePhong * 2,
-                    MaKH: duLieu.khachHang.MaKH,
-                    // Lấy MaNV từ user (thêm dấu ? để phòng hờ trường hợp bị rớt đăng nhập)
-                    MaNV: user?.MaNV, 
-                    MaPhong: duLieu.phong.MaPhong,
-                    MaPhieuYC: duLieu.phieuYeuCau.MaPhieuYC,
-                }
-            );
-
-            setThongBao({
-                hienThi: true,
-                noiDung: 'Xác nhận thành công!\nThanh toán cọc mở trong 24 giờ.',
-            });
-
-            setTimeout(() => { TimKhachHang(); }, 1000);
-            setTimeout(() => { setThongBao({ hienThi: false, noiDung: '' }); }, 3000);
-        } catch (error) {
-            console.error(error);
-            const errorMsg = error.response?.data || error.message || 'Xác nhận thất bại!';
-            alert('Có lỗi xảy ra: ' + errorMsg);
-        }
-    };
-
-    const FormatTien = (tien) => {
-        if (!tien) return '0đ';
-        return Number(tien).toLocaleString('vi-VN') + 'đ';
     };
 
     return (
-        <div className="bg-white min-h-screen">
+        <div className="min-h-screen bg-gray-100">
             <SaleNavbar />
+            <div className="p-8">
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">Xác nhận thuê</h1>
+                    <p className="text-gray-600">Danh sách khách hàng đã hẹn lịch. Chọn một dòng để xác nhận thuê và tạo phiếu đặt cọc.</p>
+                    <button onClick={loadPending} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">Tải lại danh sách</button>
+                </div>
 
-            <div className="max-w-6xl mx-auto px-6 py-8 relative">
+                {message && (
+                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{message}</div>
+                )}
 
-                {/* --- UPDATE MODAL UI (Matches Image) --- */}
-                {isModalOpen && (
-                    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black bg-opacity-50">
-                        <div className="bg-white w-full max-w-2xl rounded-lg shadow-2xl overflow-hidden relative">
-                            <div className="bg-[#333] text-white py-3 px-6 text-center font-bold text-lg">
-                                Điền thông tin người đăng ký
-                            </div>
-
-                            <div className="p-8 grid grid-cols-2 gap-6 relative">
-                                {/* Success Message Overlay */}
-                                {updateSuccess && (
-                                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-10">
-                                        <div className="bg-[#2A754B] text-white p-6 rounded-lg shadow-xl text-center font-bold">
-                                            Cập nhật thông tin<br />khách hàng thành công!
+                <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
+                    <div className="bg-white rounded-lg shadow p-4">
+                        <h2 className="text-lg font-semibold mb-4">Chờ xác nhận</h2>
+                        <div className="space-y-2 max-h-[560px] overflow-y-auto">
+                            {pendingSchedules.length === 0 ? (
+                                <div className="rounded border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+                                    Hiện không có khách hàng chờ xác nhận thuê.
+                                </div>
+                            ) : (
+                                pendingSchedules.map((item) => (
+                                    <button
+                                        key={item.MaPhieuYC}
+                                        onClick={() => setSelectedSchedule(item)}
+                                        className={`w-full text-left rounded-lg border px-4 py-3 transition ${selectedSchedule?.MaPhieuYC === item.MaPhieuYC ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50'}`}
+                                    >
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div>
+                                                <p className="font-semibold text-gray-800">{item.HoTen}</p>
+                                                <p className="text-xs text-gray-500">CCCD: {item.CCCD}</p>
+                                            </div>
+                                            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">{item.MaPhong || 'Chưa rõ'}</span>
                                         </div>
-                                    </div>
-                                )}
-
-                                <div>
-                                    <label className="block font-bold mb-1">Họ và tên</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-gray-400 p-2 rounded"
-                                        value={formSua.HoTen}
-                                        onChange={(e) => setFormSua({ ...formSua, HoTen: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-bold mb-1">CCCD</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-gray-400 p-2 rounded bg-gray-100"
-                                        value={formSua.CCCD}
-                                        readOnly
-                                    />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block font-bold mb-1">Giới tính</label>
-                                    <div className="flex items-center gap-6">
-                                        <label className="flex items-center gap-2">
-                                            <input type="radio" name="gioitinh" checked={formSua.GioiTinh === 'Nam'} onChange={() => setFormSua({ ...formSua, GioiTinh: 'Nam' })} /> Nam
-                                        </label>
-                                        <label className="flex items-center gap-2">
-                                            <input type="radio" name="gioitinh" checked={formSua.GioiTinh === 'Nữ'} onChange={() => setFormSua({ ...formSua, GioiTinh: 'Nữ' })} /> Nữ
-                                        </label>
-                                        <label className="flex items-center gap-2">
-                                            <input type="radio" name="gioitinh" checked={formSua.GioiTinh === 'Khác'} onChange={() => setFormSua({ ...formSua, GioiTinh: 'Khác' })} /> Khác:
-                                            <input type="text" className="border-b border-gray-400 outline-none w-24" />
-                                        </label>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block font-bold mb-1">Số điện thoại</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-gray-400 p-2 rounded"
-                                        value={formSua.SDT}
-                                        onChange={(e) => setFormSua({ ...formSua, SDT: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block font-bold mb-1">Email</label>
-                                    <input
-                                        type="text"
-                                        className="w-full border border-gray-400 p-2 rounded"
-                                        value={formSua.Email}
-                                        onChange={(e) => setFormSua({ ...formSua, Email: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className="col-span-2 flex justify-end gap-4 mt-4">
-                                    <button
-                                        onClick={() => setIsModalOpen(false)}
-                                        className="bg-[#C4C4C4] hover:bg-gray-400 text-black font-bold py-2 px-10 rounded"
-                                    >
-                                        Huỷ
+                                        <p className="mt-2 text-sm text-gray-600">Ngày ở dự kiến: {item.ThoiGianDuKien || 'Chưa có'}</p>
+                                        <p className="text-sm text-gray-600">Lịch hẹn: {item.ThoiGianHen || 'Chưa có'}</p>
                                     </button>
-                                    <button
-                                        onClick={HandleUpdateKH}
-                                        className="bg-[#2A754B] hover:bg-green-800 text-white font-bold py-2 px-10 rounded"
-                                    >
-                                        Cập nhật
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {thongBao.hienThi && (
-                    <div className="fixed top-1/2 left-1/2 z-[9999] transform -translate-x-1/2 -translate-y-1/2 bg-[#2A754B] text-white px-8 py-4 text-center text-xl font-bold shadow-2xl rounded-lg">
-                        {thongBao.noiDung.split('\n').map((dong, index) => <div key={index}>{dong}</div>)}
-                    </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-10">
-                    <div>
-                        <h2 className="text-xl font-bold leading-tight">Vui lòng chọn một khách hàng để xác nhận</h2>
-                        <p className="font-semibold text-sm text-gray-600 mb-4">(nhập số CCCD)</p>
-
-                        <div className="flex items-center gap-3 mb-6">
-                            <input
-                                type="text"
-                                value={cccd}
-                                onChange={(e) => setCccd(e.target.value)}
-                                placeholder="08388388381111111"
-                                className="border border-gray-400 w-[300px] h-[45px] px-4 text-base outline-none rounded"
-                            />
-
-                            <button
-                                onClick={TimKhachHang}
-                                disabled={dangTai}
-                                className="bg-[#333333] hover:bg-black text-white px-6 h-[45px] text-base font-bold rounded shadow-sm"
-                            >
-                                Tìm
-                            </button>
-
-                            {/* --- THE BUTTON THAT ONLY APPEARS WHEN CUSTOMER IS FOUND --- */}
-                            {duLieu && (
-                                <button
-                                    onClick={() => setIsModalOpen(true)}
-                                    className="bg-[#2A754B] hover:bg-green-800 text-white px-6 h-[45px] text-base font-bold rounded shadow-sm"
-                                >
-                                    Cập nhật
-                                </button>
+                                ))
                             )}
                         </div>
-
-                        {duLieu && (
-                            <div className="space-y-6">
-                                <table className="w-full border-collapse">
-                                    <tbody>
-                                        <DongThongTin label="Khách hàng" value={`${duLieu.khachHang.MaKH} - ${duLieu.khachHang.HoTen}`} />
-                                        <DongThongTin label="CCCD" value={duLieu.khachHang.CCCD} />
-                                        <DongThongTin label="Giới tính" value={duLieu.khachHang.GioiTinh} />
-                                        <DongThongTin label="Số điện thoại" value={duLieu.khachHang.SDT} />
-                                        <DongThongTin label="Email" value={duLieu.khachHang.Email} />
-                                        <DongThongTin label="Ngày ở dự kiến" value={duLieu.phieuYeuCau.ThoiGianDuKien} />
-                                    </tbody>
-                                </table>
-                                {/* ... Rest of your room info table ... */}
-                                <table className="w-full border-collapse">
-                                    <tbody>
-                                        <DongThongTin label="Nhu cầu thuê" value={duLieu.phieuYeuCau.HinhThucThue} />
-                                        <DongThongTin label="Phòng" value={duLieu.phong.MaPhong} />
-                                        <DongThongTin label="Loại phòng" value={duLieu.phong.TenLoai} />
-                                        <DongThongTin label="Số người tối đa" value={duLieu.phong.SoNguoiThueToiDa} />
-                                        <DongThongTin label="Số người dự kiến" value={duLieu.phieuYeuCau.SoNguoiDuKien} />
-                                        <DongThongTin label="Khu vực" value={duLieu.phong.TenKhuVuc} />
-                                        <DongThongTin label="Địa chỉ" value={duLieu.phong.DiaChi} />
-                                        <tr className="border border-gray-300">
-                                            <td className="border border-gray-300 px-3 py-2 font-bold text-sm bg-gray-50 w-[160px]">
-                                                Tình trạng phòng
-                                            </td>
-                                            <td className={`border border-gray-300 px-3 py-2 text-sm ${duLieu.phong.TrangThai === 'Trống' ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}`}>
-                                                {duLieu.phong.TrangThai}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
                     </div>
 
-                    {/* RIGHT COLUMN (Deposit Info) */}
-                    <div>
-                        {duLieu && (
-                            <>
-                                <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <p className="text-lg font-bold mb-1">Mức tiền cọc:</p>
-                                        <p className="text-[#2A754B] text-3xl font-bold">{FormatTien(duLieu.phong.GiaThuePhong * 2)}</p>
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-lg shadow p-6">
+                            {selectedSchedule ? (
+                                <>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <p className="text-sm text-gray-500">Khách hàng</p>
+                                            <p className="text-lg font-semibold text-gray-900">{selectedSchedule.HoTen}</p>
+                                            <p className="mt-1 text-sm text-gray-600">CCCD: {selectedSchedule.CCCD}</p>
+                                            <p className="text-sm text-gray-600">SĐT: {selectedSchedule.SDT || 'Chưa có'}</p>
+                                            <p className="text-sm text-gray-600">Email: {selectedSchedule.Email || 'Chưa có'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-500">Phòng</p>
+                                            <p className="text-lg font-semibold text-gray-900">{selectedSchedule.MaPhong || 'Chưa chọn'}</p>
+                                            <p className="mt-1 text-sm text-gray-600">Trạng thái phòng: {selectedSchedule.TinhTrangPhong || 'Không rõ'}</p>
+                                            <p className="text-sm text-gray-600">Hình thức thuê: {selectedSchedule.HinhThucThue || 'Không rõ'}</p>
+                                            <p className="text-sm text-gray-600">Số người: {selectedSchedule.SoNguoiDuKien || 'Không rõ'}</p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-lg font-bold mb-1">Trạng thái:</p>
-                                        <div className="text-xl font-bold whitespace-pre-line">{duLieu.trangThaiPYC}</div>
+
+                                    <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-5">
+                                        <p className="text-sm text-gray-500">Số tiền cọc bắt buộc</p>
+                                        <p className="mt-2 text-4xl font-bold text-green-700">6.000.000₫</p>
+                                        <p className="mt-3 text-sm text-gray-600">Phiếu đặt cọc sẽ được tạo và chuyển khách sang trang thanh toán trong 24 giờ.</p>
                                     </div>
+
+                                    <div className="mt-6 flex flex-wrap gap-3">
+                                        <button
+                                            onClick={handleConfirm}
+                                            disabled={loading}
+                                            className="inline-flex items-center justify-center rounded bg-[#2A754B] px-6 py-3 text-white transition hover:bg-[#225d44] disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            {loading ? 'Đang xử lý...' : 'Xác nhận thuê'}
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedSchedule(null)}
+                                            className="inline-flex items-center justify-center rounded border border-gray-300 bg-white px-6 py-3 text-gray-700 hover:bg-gray-50"
+                                        >
+                                            Bỏ chọn
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-500">
+                                    Chọn một khách hàng bên trái để xem chi tiết và xác nhận thuê.
                                 </div>
-                                <div className="mb-6">
-                                    <h3 className="text-lg font-bold mb-2">Nội quy chỗ ở:</h3>
-                                    <div className="border border-gray-300 bg-gray-50 h-[300px] overflow-y-auto p-4 text-sm text-gray-700 whitespace-pre-line rounded">
-                                        {duLieu.phong.DieuKienChoThue}
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={XacNhanThuePhong}
-                                    disabled={duLieu.trangThaiPYC.includes('Đã xác nhận') || duLieu.phong.TrangThai !== 'Trống'}
-                                    className={`w-full py-4 text-lg font-bold text-white transition-all shadow-sm rounded-md ${duLieu.trangThaiPYC.includes('Đã xác nhận') || duLieu.phong.TrangThai !== 'Trống' ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#2A754B] hover:bg-green-800'}`}
-                                >
-                                    Xác nhận đồng ý thuê & đặt cọc
-                                </button>
-                            </>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    );
-};
 
-const DongThongTin = ({ label, value }) => {
-    return (
-        <tr className="border border-gray-300">
-            <td className="border border-gray-300 px-3 py-2 font-bold text-sm bg-gray-50 w-[160px]">{label}</td>
-            <td className="border border-gray-300 px-3 py-2 text-sm text-gray-800">{value || '...'}</td>
-        </tr>
+            {showSuccess && (
+                <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/50 px-4">
+                    <div className="w-full max-w-md rounded-xl bg-white p-8 text-center shadow-xl">
+                        <h2 className="text-2xl font-bold text-[#2A754B]">Xác nhận thuê thành công!</h2>
+                        <p className="mt-4 text-gray-600">Phiếu đặt cọc đã được tạo. Khách hàng có 24 giờ để thanh toán cọc.</p>
+                        <button
+                            onClick={() => setShowSuccess(false)}
+                            className="mt-8 inline-flex rounded bg-gray-800 px-6 py-3 text-white hover:bg-gray-700"
+                        >
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 

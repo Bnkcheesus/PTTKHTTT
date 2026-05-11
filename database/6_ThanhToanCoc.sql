@@ -38,17 +38,6 @@ BEGIN
 END
 GO
 
--- Lấy danh sách giường còn trống của một phòng
-CREATE OR ALTER PROCEDURE LayThongTinGiuongConTrong_Phong
-	@MaPhong VARCHAR(50)
-AS
-BEGIN
-	SELECT MaGiuong
-            FROM GIUONG
-            WHERE MaPhong = @MaPhong AND TrangThai = N'Trống'
-END
-GO
-
 
 -- Cập nhật trạng thái của một giường
 CREATE OR ALTER PROCEDURE CapNhatTrangThaiGiuong
@@ -61,5 +50,3 @@ BEGIN
     WHERE MaGiuong = @MaGiuong
 END
 GO
-
-
