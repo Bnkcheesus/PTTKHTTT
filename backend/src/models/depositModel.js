@@ -84,10 +84,44 @@ const updatePaymentStatus = async (maPDC, hinhThucThanhToan) => {
         .execute('CapNhatPDC_DaThanhToan');
 };
 
+const GhiNhanThanhToan = async (maPDC, hinhThucThanhToan) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaPDC', mssql.VarChar(50), maPDC)
+        .input('HinhThucThanhToan', mssql.NVarChar(20), hinhThucThanhToan)
+        .execute('CapNhatPDC_DaThanhToan');
+};
+
+const DatGiuong = async (maPDC, maGiuong) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaPhieuDatCoc', mssql.VarChar(50), maPDC)
+        .input('MaGiuong', mssql.VarChar(50), maGiuong)
+        .execute('ThemChiTietDatCoc');
+};
+
+const TaoLichHenNhanPhong = async (ngayGioHen, maPhieuYC) => {
+    const pool = await poolPromise;
+
+    //const thoiGianSach = ngayGioHen.replace('T', ' ').replace(/\..*$/, '');
+    console.log('Đang tạo lịch hẹn với thời gian:', ngayGioHen, 'và mã phiếu yêu cầu:', maPhieuYC); // Debug log
+    
+    const result = await pool.request()
+        .input('ThoiGian', mssql.DateTime, ngayGioHen)
+        .input('LyDo', mssql.NVarChar(255), 'Hẹn nhận phòng')
+        .input('MaPhieuYC', mssql.VarChar(50), maPhieuYC)   
+        .input('MaNV', mssql.VarChar(50), null) // Tạm thời gán MaNV cố định, có thể thay đổi sau
+        .execute('ThemLichHen');
+    return result.recordset[0].MaLH;
+};
+
 module.exports = {
     LayPhieuDatCocTheoMaPhieuYC,
     getPendingRequestByCCCD,
     createDeposit,
+    TaoLichHenNhanPhong,
+    GhiNhanThanhToan,
+    DatGiuong,
     getDepositInfoByCCCD,
     updatePaymentStatus
 };

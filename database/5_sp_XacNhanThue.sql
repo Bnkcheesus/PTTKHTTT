@@ -123,62 +123,7 @@ BEGIN
         @MaPhieuYC
     );
 
-    --------------------------------------------------------
-    -- Nếu là ở ghép -> thêm CHITIETDATCOC
-    --------------------------------------------------------
-    IF (@HinhThucThue = N'Ở ghép')
-    BEGIN
-
-        DECLARE @Count INT = 0;
-
-        -- Cursor lấy các giường trống
-        DECLARE curGiuong CURSOR FOR
-        SELECT TOP (@SoNguoiDuKien) MaGiuong
-        FROM GIUONG
-        WHERE MaPhong = @MaPhong
-          AND TrangThai = N'Trống';
-
-        OPEN curGiuong;
-
-        FETCH NEXT FROM curGiuong INTO @MaGiuong;
-
-        WHILE @@FETCH_STATUS = 0
-        BEGIN
-
-            ------------------------------------------------
-            -- Gọi thủ tục thêm chi tiết đặt cọc
-            ------------------------------------------------
-            EXEC ThemChiTietDatCoc
-                @MaPhieuDatCoc,
-                @MaGiuong;
-
-            ------------------------------------------------
-            -- Cập nhật trạng thái giường
-            ------------------------------------------------
-            UPDATE GIUONG
-            SET TrangThai = N'Đã giữ chỗ'
-            WHERE MaGiuong = @MaGiuong;
-
-            SET @Count = @Count + 1;
-
-            FETCH NEXT FROM curGiuong INTO @MaGiuong;
-        END
-
-        CLOSE curGiuong;
-        DEALLOCATE curGiuong;
-
-        ----------------------------------------------------
-        -- Kiểm tra đủ số giường không
-        ----------------------------------------------------
-        IF (@Count < @SoNguoiDuKien)
-        BEGIN
-            PRINT N'Không đủ giường trống!';
-        END
-    END
-
-    --------------------------------------------------------
-    -- Trả về mã PDC vừa tạo
-    --------------------------------------------------------
+    
     SELECT @MaPhieuDatCoc AS MaPhieuDatCocMoi;
 
 END

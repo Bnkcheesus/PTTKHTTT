@@ -26,9 +26,26 @@ const LayThongTinPhong = async (MaPhong) => {
     return result.recordset[0] || null;
 };
 
+const getFreeBedsByMaPhong = async (MaPhong) => {
+    const pool = await poolPromise;
+    const result = await pool.request()
+        .input('MaPhong', mssql.VarChar(50), MaPhong)
+        .execute('LayThongTinGiuongConTrong_Phong'); // Gọi Stored Procedure getFreeBedsByMaPhong
+    return result.recordset;
+};
+
+const CapNhatTrangThaiGiuong = async (MaGiuong, TrangThai) => {
+    const pool = await poolPromise;
+    await pool.request()
+        .input('MaGiuong', mssql.VarChar(50), MaGiuong)
+        .input('TT', mssql.NVarChar(50), TrangThai)
+        .execute('CapNhatTrangThaiGiuong');
+};
 
 module.exports = { 
     LayDanhSachPhong, 
     LayChiTietPhong,
-    LayThongTinPhong
+    LayThongTinPhong,
+    getFreeBedsByMaPhong,
+    CapNhatTrangThaiGiuong
 };
