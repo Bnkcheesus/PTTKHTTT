@@ -58,6 +58,7 @@ const XacNhanThue = () => {
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">Xác nhận thuê</h1>
                     <p className="text-gray-600">Danh sách khách hàng đã hẹn lịch. Chọn một dòng để xác nhận thuê và tạo phiếu đặt cọc.</p>
+                    <button onClick={loadPending} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">Tải lại danh sách</button>
                 </div>
 
                 {message && (
