@@ -61,8 +61,7 @@ const RoomRegistration = () => {
                         KhoangGia: phongDangChon.GiaThuePhong, 
                         ThoiGianDuKien: '12 Tháng',
                         GhiChu: '', 
-                        // SỬA Ở ĐÂY: Đổi khachDaiDien.NhuCau thành khachDaiDien.HinhThucThue
-                        HinhThucThue: khachDaiDien.HinhThucThue, 
+                        HinhThucThue: khachDaiDien.NhuCau,
                         MaKV: phongDangChon.MaKV, 
                         MaLoai: phongDangChon.MaLoai, 
                         MaPhong: phongDangChon.MaPhong
@@ -77,8 +76,7 @@ const RoomRegistration = () => {
                         KhoangGia: phongDangChon.GiaThuePhong, 
                         ThoiGianDuKien: '12 Tháng',
                         GhiChu: '', 
-                        // SỬA Ở ĐÂY NỮA: Đổi khachDaiDien.NhuCau thành khachDaiDien.HinhThucThue
-                        HinhThucThue: khachDaiDien.HinhThucThue, 
+                        HinhThucThue: khachDaiDien.NhuCau,
                         MaKV: phongDangChon.MaKV, 
                         MaLoai: phongDangChon.MaLoai, 
                         MaPhong: phongDangChon.MaPhong
