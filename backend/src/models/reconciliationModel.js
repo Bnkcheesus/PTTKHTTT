@@ -353,12 +353,25 @@ const submitRefundRequest = async ({ maBang, hinhThucHoanCoc }) => {
     const request = pool.request();
     await ensureReconciliationStatusColumn(request);
 
+    // 1. Tính toán số tiền thực tế khách nhận lại
+    const infoResult = await pool.request()
+        .input('MaBangInfo', mssql.VarChar(50), maBang)
+        .query('SELECT SoTienHoanCoc, TongKhauTru FROM BANGDOISOAT WHERE MaBang = @MaBangInfo');
+
+    const itemInfo = infoResult.recordset[0];
+    if (!itemInfo) throw new Error('Không tìm thấy bảng đối soát.');
+
+    const amountToRefund = itemInfo.SoTienHoanCoc - itemInfo.TongKhauTru;
+    // 2. Quyết định trạng thái tiếp theo (Nếu <= 0đ thì hoàn tất luôn)
+    const nextStatus = amountToRefund <= 0 ? 'Đã hoàn cọc' : 'Chờ kế toán hoàn cọc';
+
     const result = await pool.request()
         .input('MaBang', mssql.VarChar(50), maBang)
         .input('HinhThucHoanCoc', mssql.NVarChar(50), hinhThucHoanCoc)
+        .input('NextStatus', mssql.NVarChar(50), nextStatus)
         .query(`
             UPDATE BANGDOISOAT
-            SET TrangThaiHoanCoc = N'Chờ kế toán hoàn cọc',
+            SET TrangThaiHoanCoc = @NextStatus,
                 HinhThucHoanCoc = @HinhThucHoanCoc,
                 NgayDuyetHoanCoc = CAST(GETDATE() AS DATE)
             WHERE MaBang = @MaBang

@@ -144,26 +144,6 @@ const createReturnVoucher = async ({ MaPhieuDatCoc, NgayTraPhong, MaNV }) => {
                 WHERE MaPhieuDatCoc = @MaPhieuDatCoc
             `);
 
-        if (deposit.MaPhong) {
-            await transaction.request()
-                .input('MaPhong', mssql.VarChar(50), deposit.MaPhong)
-                .query(`
-                    UPDATE PHONG
-                    SET TrangThai = N'Trống'
-                    WHERE MaPhong = @MaPhong
-                `);
-        }
-
-        await transaction.request()
-            .input('MaPhieuDatCoc', mssql.VarChar(50), MaPhieuDatCoc)
-            .query(`
-                UPDATE G
-                SET G.TrangThai = N'Trống'
-                FROM GIUONG G
-                JOIN CHITIETDATCOC CT ON CT.MaGiuong = G.MaGiuong
-                WHERE CT.MaPhieuDatCoc = @MaPhieuDatCoc
-            `);
-
         await transaction.commit();
 
         return { 
