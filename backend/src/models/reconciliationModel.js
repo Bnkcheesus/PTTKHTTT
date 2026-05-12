@@ -487,6 +487,8 @@ const createReconciliation = async ({ maPhieuKiemTra, giaDien, giaNuoc, tienNoKh
     try {
         await transaction.begin();
 
+        await ensureReconciliationStatusColumn(transaction.request());
+
         const txRequest = transaction.request();
         const detailResult = await txRequest
             .input('MaPhieuKiemTra', mssql.VarChar(50), maPhieuKiemTra)
@@ -533,9 +535,10 @@ const createReconciliation = async ({ maPhieuKiemTra, giaDien, giaNuoc, tienNoKh
             .input('SoTienHoanCoc', mssql.Decimal(18, 2), refundAmount)
             .input('TongKhauTru', mssql.Decimal(18, 2), totalDeductions)
             .input('MaPhieuTra', mssql.VarChar(50), inspection.MaPhieuTra)
+            .input('TrangThai', mssql.NVarChar(50), 'Chờ duyệt')
             .query(`
-                INSERT INTO BANGDOISOAT (MaBang, TyLeHoanCoc, SoTienHoanCoc, TongKhauTru, MaPhieuTra)
-                VALUES (@MaBang, @TyLeHoanCoc, @SoTienHoanCoc, @TongKhauTru, @MaPhieuTra)
+                INSERT INTO BANGDOISOAT (MaBang, TyLeHoanCoc, SoTienHoanCoc, TongKhauTru, MaPhieuTra, TrangThai)
+                VALUES (@MaBang, @TyLeHoanCoc, @SoTienHoanCoc, @TongKhauTru, @MaPhieuTra, @TrangThai)
             `);
 
         const deductionItems = [
