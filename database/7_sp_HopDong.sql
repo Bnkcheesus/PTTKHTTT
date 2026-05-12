@@ -7,11 +7,12 @@ BEGIN
         P.MaPhieuDatCoc, 
         K.HoTen, 
         P.NgayLap, 
-        CN.MaNhom
+        CN.MaNhom,
+        P.TrangThai
     FROM PHIEUDATCOC P
     JOIN KHACHHANG K ON K.MaKH = P.MaKH
     LEFT JOIN CHITIET_NHOMTHUE CN ON CN.MaKH = K.MaKH
-    WHERE P.TrangThai = N'Đã thanh toán' AND 
+    WHERE P.TrangThai IN (N'Đã thanh toán', N'Được chấp thuận') AND 
 	P.MaPhieuDatCoc NOT IN (SELECT MaPhieuDatCoc FROM HOPDONG WHERE MaPhieuDatCoc IS NOT NULL)
 END
 GO
@@ -41,7 +42,7 @@ GO
 CREATE OR ALTER PROCEDURE LayDSDatCocDuocDuyet
 AS
 BEGIN
-	SELECT MaPhieuDatCoc, HoTen, NgayLap, MaNhom
+	SELECT MaPhieuDatCoc, HoTen, NgayLap, MaNhom, TrangThai
 	FROM PHIEUDATCOC
 	JOIN KHACHHANG ON KHACHHANG.MaKH = PHIEUDATCOC.MaKH
 	LEFT JOIN CHITIET_NHOMTHUE ON CHITIET_NHOMTHUE.MAKH = KHACHHANG.MaKH
