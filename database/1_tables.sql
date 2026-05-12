@@ -222,6 +222,11 @@ CREATE TABLE BANGDOISOAT (
     SoTienHoanCoc DECIMAL(18, 2),
     TongKhauTru DECIMAL(18, 2),
     MaPhieuTra VARCHAR(50),
+    TrangThai NVARCHAR(50) DEFAULT N'Chờ duyệt',
+    TrangThaiThanhLy NVARCHAR(50) DEFAULT N'Chưa thanh lý',
+    TrangThaiHoanCoc NVARCHAR(50) DEFAULT N'Chưa gửi',
+    HinhThucHoanCoc NVARCHAR(50) NULL,
+    NgayDuyetHoanCoc DATE NULL,
     FOREIGN KEY (MaPhieuTra) REFERENCES PHIEUTRAPHONG(MaPhieuTra)
 );
 

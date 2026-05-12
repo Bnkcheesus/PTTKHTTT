@@ -257,10 +257,11 @@ const getSalesRefundCandidates = async () => {
         JOIN PHIEUDATCOC PDC ON PDC.MaPhieuDatCoc = PTR.MaPhieuDatCoc
         JOIN KHACHHANG KH ON KH.MaKH = PDC.MaKH
         LEFT JOIN HOPDONG HD ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
-        JOIN HOADON H ON H.MaPhieuTra = B.MaPhieuTra
+        LEFT JOIN HOADON H ON H.MaPhieuTra = B.MaPhieuTra
             AND H.LoaiHoaDon = N'Thanh toán phát sinh'
         WHERE B.TrangThai = N'Đã duyệt'
             AND B.TrangThaiHoanCoc = N'Chưa gửi'
+            AND (B.TongKhauTru <= B.SoTienHoanCoc OR H.MaHD IS NOT NULL)
         ORDER BY B.MaBang DESC
     `);
 
@@ -285,11 +286,12 @@ const liquidateContractForRefund = async (maBang) => {
                 FROM BANGDOISOAT B
                 JOIN PHIEUTRAPHONG PTR ON PTR.MaPhieuTra = B.MaPhieuTra
                 JOIN PHIEUDATCOC PDC ON PDC.MaPhieuDatCoc = PTR.MaPhieuDatCoc
-                JOIN HOADON H ON H.MaPhieuTra = B.MaPhieuTra
+                LEFT JOIN HOADON H ON H.MaPhieuTra = B.MaPhieuTra
                     AND H.LoaiHoaDon = N'Thanh toán phát sinh'
                 WHERE B.MaBang = @MaBang
                     AND B.TrangThai = N'Đã duyệt'
                     AND B.TrangThaiHoanCoc = N'Chưa gửi'
+                    AND (B.TongKhauTru <= B.SoTienHoanCoc OR H.MaHD IS NOT NULL)
             `);
 
         const item = detailResult.recordset[0];
