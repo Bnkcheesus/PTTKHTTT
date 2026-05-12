@@ -19,14 +19,15 @@ const RegistrationModal = ({ moHopThoai, phongDangChon, dongHopThoai, xacNhanDan
             alert("Vui lòng nhập đầy đủ Họ tên, CCCD và Số điện thoại!");
             return;
         }
-
         // Đóng gói dữ liệu thành 1 cục (payload)
         const payload = {
-            HoTen: hoTen,
-            CCCD: cccd,
-            GioiTinh: gioiTinh === 'Khác' ? gioiTinhKhac : gioiTinh,
-            SDT: sdt,
-            Email: email,
+            khachDaiDien: {
+                HoTen: hoTen,
+                CCCD: cccd,
+                GioiTinh: gioiTinh === 'Khác' ? gioiTinhKhac : gioiTinh,
+                SDT: sdt,
+                Email: email,
+            },
             
             // --- SỬA Ở ĐÂY: Gửi nhiều tên biến để rào lỗi Backend không nhận được ---
             HinhThucThue: nhuCau,  // Tên chuẩn theo Database
@@ -39,6 +40,7 @@ const RegistrationModal = ({ moHopThoai, phongDangChon, dongHopThoai, xacNhanDan
             MaPhong: phongDangChon?.MaPhong,
             KhoangGia: phongDangChon?.GiaThuePhong 
         };
+        console.log(payload);
 
         xacNhanDangKy(payload);
     };

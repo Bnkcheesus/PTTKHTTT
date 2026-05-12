@@ -49,19 +49,20 @@ const RoomRegistration = () => {
         }
     };
 
-    const GoiApiDangKy = async (khachDaiDien, danhSachKhachPhu) => {
-        const soLuongKhachPhu = parseInt(khachDaiDien.SoNguoiChung) || 0;
+    const GoiApiDangKy = async (payload) => {
+        const soLuongKhachPhu = parseInt(payload.SoNguoiDuKien) - 1 || 0;
+        console.log("Số lượng khách phụ:", soLuongKhachPhu);
         
         try {
             if (soLuongKhachPhu === 0) {
                 await axios.post('http://localhost:5000/api/customers/register-flow', {
-                    customerInfo: khachDaiDien,
+                    customerInfo: payload.khachDaiDien,
                     requestInfo: {
                         SoNguoiDuKien: 1, 
                         KhoangGia: phongDangChon.GiaThuePhong, 
                         ThoiGianDuKien: '12 Tháng',
                         GhiChu: '', 
-                        HinhThucThue: khachDaiDien.NhuCau,
+                        HinhThucThue: payload.NhuCau,
                         MaKV: phongDangChon.MaKV, 
                         MaLoai: phongDangChon.MaLoai, 
                         MaPhong: phongDangChon.MaPhong
@@ -69,14 +70,14 @@ const RoomRegistration = () => {
                 });
             } else {
                 await axios.post('http://localhost:5000/api/customers/register-group-flow', {
-                    daiDienInfo: khachDaiDien,
-                    khachPhuList: danhSachKhachPhu,
+                    daiDienInfo: payload.khachDaiDien,
+                    khachPhuList: [],
                     requestInfo: {
                         SoNguoiDuKien: soLuongKhachPhu + 1, 
                         KhoangGia: phongDangChon.GiaThuePhong, 
                         ThoiGianDuKien: '12 Tháng',
                         GhiChu: '', 
-                        HinhThucThue: khachDaiDien.NhuCau,
+                        HinhThucThue: payload.NhuCau,
                         MaKV: phongDangChon.MaKV, 
                         MaLoai: phongDangChon.MaLoai, 
                         MaPhong: phongDangChon.MaPhong

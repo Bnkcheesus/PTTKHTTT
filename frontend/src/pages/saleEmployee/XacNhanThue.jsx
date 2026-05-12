@@ -36,7 +36,7 @@ const XacNhanThue = () => {
                 maKH: selectedSchedule.MaKH,
                 maPhong: selectedSchedule.MaPhong,
                 maPhieuYC: selectedSchedule.MaPhieuYC,
-                tienCoc: 6000000,
+                tienCoc: selectedSchedule.GiaThuePhong * 2, // Cọc bằng 2 tháng tiền thuê
                 maNV: user?.MaNV || 'NV001'
             });
             if (res.success) {
@@ -118,7 +118,7 @@ const XacNhanThue = () => {
 
                                     <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-5">
                                         <p className="text-sm text-gray-500">Số tiền cọc bắt buộc</p>
-                                        <p className="mt-2 text-4xl font-bold text-green-700">6.000.000₫</p>
+                                        <p className="mt-2 text-4xl font-bold text-green-700">{(selectedSchedule.GiaThuePhong * 2).toLocaleString('vi-VN')}₫</p>
                                         <p className="mt-3 text-sm text-gray-600">Phiếu đặt cọc sẽ được tạo và chuyển khách sang trang thanh toán trong 24 giờ.</p>
                                     </div>
 
