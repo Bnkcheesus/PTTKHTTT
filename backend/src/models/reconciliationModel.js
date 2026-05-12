@@ -285,7 +285,9 @@ const liquidateContractForRefund = async (maBang) => {
                 SELECT
                     B.MaBang,
                     PTR.MaPhieuDatCoc,
-                    PDC.MaPhong
+                    PDC.MaPhong,
+                    B.SoTienHoanCoc,
+                    B.TongKhauTru
                 FROM BANGDOISOAT B
                 JOIN PHIEUTRAPHONG PTR ON PTR.MaPhieuTra = B.MaPhieuTra
                 JOIN PHIEUDATCOC PDC ON PDC.MaPhieuDatCoc = PTR.MaPhieuDatCoc
@@ -330,11 +332,20 @@ const liquidateContractForRefund = async (maBang) => {
                 WHERE CT.MaPhieuDatCoc = @MaPhieuDatCoc
             `);
 
+        // Tự động đóng hồ sơ nếu khách không được nhận lại tiền
+        const amountToRefund = item.SoTienHoanCoc - item.TongKhauTru;
+        const autoComplete = amountToRefund <= 0;
+
         await transaction.request()
             .input('MaBang', mssql.VarChar(50), maBang)
+            .input('TrangThaiHoanCoc', mssql.NVarChar(50), autoComplete ? 'Đã hoàn cọc' : 'Chưa gửi')
+            .input('HinhThucHoanCoc', mssql.NVarChar(50), autoComplete ? 'Không hoàn tiền' : null)
             .query(`
                 UPDATE BANGDOISOAT
-                SET TrangThaiThanhLy = N'Đã thanh lý'
+                SET TrangThaiThanhLy = N'Đã thanh lý',
+                    TrangThaiHoanCoc = @TrangThaiHoanCoc,
+                    HinhThucHoanCoc = ISNULL(HinhThucHoanCoc, @HinhThucHoanCoc),
+                    NgayDuyetHoanCoc = CASE WHEN @TrangThaiHoanCoc = N'Đã hoàn cọc' THEN CAST(GETDATE() AS DATE) ELSE NgayDuyetHoanCoc END
                 WHERE MaBang = @MaBang
             `);
 
@@ -367,10 +378,11 @@ const submitRefundRequest = async ({ maBang, hinhThucHoanCoc }) => {
     const amountToRefund = itemInfo.SoTienHoanCoc - itemInfo.TongKhauTru;
     // 2. Quyết định trạng thái tiếp theo (Nếu <= 0đ thì hoàn tất luôn)
     const nextStatus = amountToRefund <= 0 ? 'Đã hoàn cọc' : 'Chờ kế toán hoàn cọc';
+    const finalHinhThuc = (hinhThucHoanCoc === 'Chưa xác định' && amountToRefund <= 0) ? 'Không hoàn tiền' : hinhThucHoanCoc;
 
     const result = await pool.request()
         .input('MaBang', mssql.VarChar(50), maBang)
-        .input('HinhThucHoanCoc', mssql.NVarChar(50), hinhThucHoanCoc)
+        .input('HinhThucHoanCoc', mssql.NVarChar(50), finalHinhThuc)
         .input('NextStatus', mssql.NVarChar(50), nextStatus)
         .query(`
             UPDATE BANGDOISOAT

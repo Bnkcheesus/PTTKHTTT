@@ -106,11 +106,7 @@ const submitRefundRequestHandler = async (req, res) => {
         const { maBang } = req.params;
         const { HinhThucHoanCoc } = req.body;
 
-        if (!HinhThucHoanCoc) {
-            return res.status(400).json({ success: false, message: 'Hình thức hoàn cọc là bắt buộc.' });
-        }
-
-        const data = await submitRefundRequest({ maBang, hinhThucHoanCoc: HinhThucHoanCoc });
+        const data = await submitRefundRequest({ maBang, hinhThucHoanCoc: HinhThucHoanCoc || 'Chưa xác định' });
         res.json({ success: true, data });
     } catch (error) {
         console.error('Submit refund request error:', error.message);
