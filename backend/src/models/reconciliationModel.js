@@ -242,7 +242,10 @@ const getSalesRefundCandidates = async () => {
         SELECT
             B.MaBang,
             B.MaPhieuTra,
-            B.SoTienHoanCoc,
+            CASE 
+                WHEN B.SoTienHoanCoc >= B.TongKhauTru THEN (B.SoTienHoanCoc - B.TongKhauTru)
+                ELSE 0 
+            END AS SoTienHoanCoc,
             B.TongKhauTru,
             B.TrangThaiThanhLy,
             B.TrangThaiHoanCoc,
@@ -385,7 +388,7 @@ const submitRefundRequest = async ({ maBang, hinhThucHoanCoc }) => {
         `);
 
     const item = result.recordset[0];
-    if (!item || item.TrangThaiHoanCoc !== 'Chờ kế toán hoàn cọc') {
+    if (!item || item.TrangThaiHoanCoc !== nextStatus) {
         throw new Error('Hồ sơ phải được thanh lý hợp đồng trước khi gửi hoàn cọc.');
     }
 
@@ -401,7 +404,10 @@ const getAccountingRefundRequests = async () => {
         SELECT
             B.MaBang,
             B.MaPhieuTra,
-            B.SoTienHoanCoc,
+            CASE 
+                WHEN B.SoTienHoanCoc >= B.TongKhauTru THEN (B.SoTienHoanCoc - B.TongKhauTru)
+                ELSE 0 
+            END AS SoTienHoanCoc,
             B.TongKhauTru,
             B.HinhThucHoanCoc,
             B.NgayDuyetHoanCoc,
