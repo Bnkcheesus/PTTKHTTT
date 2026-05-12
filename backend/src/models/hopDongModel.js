@@ -2,13 +2,40 @@ const { poolPromise, mssql } = require('../config/db');
 
 const getPaidDepositsNoContract = async () => {
     const pool = await poolPromise;
-    const result = await pool.request().execute('sp_GetAllDepositPaid');
+    const result = await pool.request().query(`
+        SELECT 
+            P.MaPhieuDatCoc, 
+            K.HoTen,
+            P.NgayLap, 
+            CN.MaNhom,
+            P.TrangThai,
+            P.MaPhong
+        FROM PHIEUDATCOC P
+        JOIN KHACHHANG K ON K.MaKH = P.MaKH
+        LEFT JOIN CHITIET_NHOMTHUE CN ON CN.MaKH = K.MaKH
+        WHERE P.TrangThai IN (N'Đã thanh toán', N'Được chấp thuận') AND 
+        P.MaPhieuDatCoc NOT IN (SELECT MaPhieuDatCoc FROM HOPDONG WHERE MaPhieuDatCoc IS NOT NULL)
+    `);
     return result.recordset;
 };
 
 const getApprovedDepositsNoContract = async () => {
     const pool = await poolPromise;
-    const result = await pool.request().execute('LayDSDatCocDuocDuyet');
+    const result = await pool.request().query(`
+        SELECT 
+            P.MaPhieuDatCoc, 
+            K.HoTen, 
+            P.NgayLap, 
+            CN.MaNhom, 
+            P.TrangThai,
+            P.MaPhong
+        FROM PHIEUDATCOC P
+        JOIN KHACHHANG K ON K.MaKH = P.MaKH
+        LEFT JOIN CHITIET_NHOMTHUE CN ON CN.MaKH = K.MaKH
+        WHERE P.TrangThai = N'Được chấp thuận' AND P.MaPhieuDatCoc NOT IN (
+            SELECT MaPhieuDatCoc FROM HOPDONG WHERE MaPhieuDatCoc IS NOT NULL
+        )
+    `);
     return result.recordset;
 };
 

@@ -1,4 +1,4 @@
-﻿USE QUANLYKHACHSAN
+﻿﻿USE QUANLYKHACHSAN
 GO
 
 -- Lấy thông tin phiếu đặt cọc gần nhất của một khách hàng
@@ -22,6 +22,22 @@ BEGIN
 	UPDATE PHIEUDATCOC
 	SET TrangThai = N'Đã thanh toán', HinhThucThanhToan = @HinhThucThanhToan
 	WHERE MaPhieuDatCoc = @MaPDC
+
+	-- 1. Đánh dấu phòng là 'Đã cho thuê'
+	DECLARE @MaPhong VARCHAR(50)
+	SELECT @MaPhong = MaPhong FROM PHIEUDATCOC WHERE MaPhieuDatCoc = @MaPDC
+	
+	IF @MaPhong IS NOT NULL
+	BEGIN
+		UPDATE PHONG
+		SET TrangThai = N'Đã cho thuê'
+		WHERE MaPhong = @MaPhong
+	END
+
+	-- 2. Đánh dấu giường là 'Đã cho thuê' (Dành cho trường hợp thuê Ký túc xá)
+	UPDATE GIUONG
+	SET TrangThai = N'Đã cho thuê'
+	WHERE MaGiuong IN (SELECT MaGiuong FROM CHITIETDATCOC WHERE MaPhieuDatCoc = @MaPDC)
 END
 GO
 

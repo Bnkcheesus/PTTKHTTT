@@ -4,11 +4,13 @@ CREATE OR ALTER PROCEDURE sp_GetAllDepositPaid
 AS
 BEGIN
     SELECT 
-        P.MaPhieuDatCoc, 
-        K.HoTen, 
-        P.NgayLap, 
+        P.MaPhieuDatCoc AS MaPhieu, 
+        K.HoTen AS TenKhach,
+        K.HoTen AS HoTenKhach, 
+        P.NgayLap AS NgayThue, 
         CN.MaNhom,
-        P.TrangThai
+        P.TrangThai,
+        P.MaPhong AS TenPhong
     FROM PHIEUDATCOC P
     JOIN KHACHHANG K ON K.MaKH = P.MaKH
     LEFT JOIN CHITIET_NHOMTHUE CN ON CN.MaKH = K.MaKH
@@ -36,13 +38,35 @@ BEGIN
 	UPDATE PHIEUDATCOC
 	SET TrangThai = N'Không được chấp thuận'
 	WHERE MaPhieuDatCoc = @maPhieu
+
+	-- 1. Giải phóng phòng thành 'Trống' do quản lý từ chối
+	DECLARE @MaPhong VARCHAR(50)
+	SELECT @MaPhong = MaPhong FROM PHIEUDATCOC WHERE MaPhieuDatCoc = @maPhieu
+	
+	IF @MaPhong IS NOT NULL
+	BEGIN
+		UPDATE PHONG
+		SET TrangThai = N'Trống'
+		WHERE MaPhong = @MaPhong
+	END
+
+	-- 2. Giải phóng giường thành 'Trống'
+	UPDATE GIUONG
+	SET TrangThai = N'Trống'
+	WHERE MaGiuong IN (SELECT MaGiuong FROM CHITIETDATCOC WHERE MaPhieuDatCoc = @maPhieu)
 END
 
 GO
 CREATE OR ALTER PROCEDURE LayDSDatCocDuocDuyet
 AS
 BEGIN
-	SELECT MaPhieuDatCoc, HoTen, NgayLap, MaNhom, TrangThai
+	SELECT 
+        MaPhieuDatCoc AS MaPhieu, 
+        HoTen AS TenKhach, 
+        HoTen AS HoTenKhach, 
+        NgayLap AS NgayThue, 
+        MaNhom, 
+        TrangThai
 	FROM PHIEUDATCOC
 	JOIN KHACHHANG ON KHACHHANG.MaKH = PHIEUDATCOC.MaKH
 	LEFT JOIN CHITIET_NHOMTHUE ON CHITIET_NHOMTHUE.MAKH = KHACHHANG.MaKH
@@ -83,10 +107,12 @@ GO
 CREATE OR ALTER PROCEDURE LayDSHopDong
 AS
 BEGIN
-	SELECT MaHopDong, NgayKy, HoTen
-	FROM HOPDONG
-	JOIN PHIEUDATCOC ON HOPDONG.MaPhieuDatCoc = PHIEUDATCOC.MaPhieuDatCoc
-	JOIN KHACHHANG ON PHIEUDATCOC.MaKH = KHACHHANG.MaKH
+    -- SỬA LẠI: Lọc các hợp đồng CHƯA có trong bảng Biên Bản
+	SELECT HD.MaHopDong, HD.NgayKy, KH.HoTen, PDC.MaPhong
+	FROM HOPDONG HD
+	JOIN PHIEUDATCOC PDC ON HD.MaPhieuDatCoc = PDC.MaPhieuDatCoc
+	JOIN KHACHHANG KH ON PDC.MaKH = KH.MaKH
+    WHERE HD.MaHopDong NOT IN (SELECT MaHopDong FROM BIENBAN WHERE MaHopDong IS NOT NULL)
 END;
 
 GO
