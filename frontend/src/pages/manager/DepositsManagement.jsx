@@ -20,7 +20,9 @@ export default function DepositsManagement() {
         setLoading(true);
         try {
             const data = await depositService.getPaidDeposits();
-            setPaidDeposits(data || []);
+            // Quản lý chỉ lấy những phiếu chờ duyệt (Đã thanh toán)
+            const pendingDeposits = (data || []).filter(d => d.TrangThai === 'Đã thanh toán');
+            setPaidDeposits(pendingDeposits);
         } catch (err) {
             setError('Lỗi khi tải dữ liệu: ' + err.message);
         } finally {

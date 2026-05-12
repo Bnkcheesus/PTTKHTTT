@@ -26,7 +26,9 @@ const LapHopDong = () => {
     const loadDeposits = async () => {
         try {
             const data = await hopDongService.getPaidDepositsNoContract();
-            setDeposits(data);
+            // Sale chỉ lập hợp đồng cho những phiếu "Được chấp thuận"
+            const approvedDeposits = (data || []).filter(d => d.TrangThai === 'Được chấp thuận');
+            setDeposits(approvedDeposits);
         } catch (err) {
             setThongBao({ hienThi: true, noiDung: 'Lỗi tải danh sách phiếu đặt cọc', loai: 'error' });
         }
@@ -164,7 +166,7 @@ const LapHopDong = () => {
                     <div className="col-span-2">
                         {/* TOP: Thông tin đặt cọc */}
                         <div>
-                            <h2 className="font-bold mb-4">Thông tin đặt cọc đã thanh toán</h2>
+                            <h2 className="font-bold mb-4">Thông tin đặt cọc đã được duyệt (Đã kiểm tra khách)</h2>
                             <div className="p-4 rounded shadow-sm mb-8" style={{ backgroundColor: '#d9ead3' }}>
                                 <div className="flex border border-gray-400 bg-white mb-2">
                                     <input placeholder="Mã phiếu đặt cọc" className="p-2 border-r border-gray-400 w-1/4 outline-none text-xs" />
