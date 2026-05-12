@@ -2,9 +2,30 @@ const { poolPromise, mssql } = require('../config/db');
 
 const LayDSKhachChuaHen = async () => {
     const pool = await poolPromise;
-    const result = await pool.request().execute('LayDSKhachChuaHen');
+    const result = await pool.request().query(`
+        SELECT DISTINCT
+            KH.MaKH, KH.HoTen, KH.CCCD, KH.SDT, KH.Email, KH.GioiTinh,
+            PYC.MaPhieuYC, PYC.SoNguoiDuKien, PYC.ThoiGianDuKien, PYC.HinhThucThue,
+            P.MaPhong,
+            CN.MaNhom -- BẮT BUỘC PHẢI THÊM CỘT NÀY ĐỂ REACT NHÌN THẤY MÃ NHÓM
+        FROM PHIEUYEUCAU PYC
+        JOIN KHACHHANG KH ON PYC.MaKH = KH.MaKH
+        LEFT JOIN PHONG P ON PYC.MaPhong = P.MaPhong
+        LEFT JOIN CHITIET_NHOMTHUE CN ON CN.MaKH = KH.MaKH
+        WHERE NOT EXISTS (
+            SELECT 1 FROM LICHHEN LH 
+            WHERE LH.MaPhieuYC = PYC.MaPhieuYC
+               OR (CN.MaNhom IS NOT NULL AND LH.MaPhieuYC IN (
+                   SELECT PYC2.MaPhieuYC FROM CHITIET_NHOMTHUE CN2 
+                   JOIN PHIEUYEUCAU PYC2 ON CN2.MaKH = PYC2.MaKH 
+                   WHERE CN2.MaNhom = CN.MaNhom
+               ))
+        )
+        ORDER BY PYC.MaPhieuYC DESC
+    `);
     return result.recordset;
 };
+
 
 const KiemTraTrungLich = async (ThoiGian, MaNV) => {
     // 1. KIỂM TRA NGÀY QUÁ KHỨ
@@ -68,15 +89,28 @@ const LayDSYCCoLichChoXacNhan = async () => {
             pyc.SoNguoiDuKien,
             pyc.ThoiGianDuKien,
             l.MaLH,
-            l.ThoiGian AS ThoiGianHen
-        FROM LICHHEN l
-        JOIN PHIEUYEUCAU pyc ON l.MaPhieuYC = pyc.MaPhieuYC
+            l.ThoiGian AS ThoiGianHen,
+            CN.MaNhom
+        FROM PHIEUYEUCAU pyc
         JOIN KHACHHANG kh ON pyc.MaKH = kh.MaKH
         LEFT JOIN PHONG p ON pyc.MaPhong = p.MaPhong
+        LEFT JOIN CHITIET_NHOMTHUE CN ON CN.MaKH = kh.MaKH
+        CROSS APPLY (
+            SELECT TOP 1 lh.MaLH, lh.ThoiGian
+            FROM LICHHEN lh
+            WHERE lh.MaPhieuYC = pyc.MaPhieuYC 
+               OR (CN.MaNhom IS NOT NULL AND lh.MaPhieuYC IN (
+                   SELECT pyc2.MaPhieuYC 
+                   FROM CHITIET_NHOMTHUE cn2 
+                   JOIN PHIEUYEUCAU pyc2 ON cn2.MaKH = pyc2.MaKH 
+                   WHERE cn2.MaNhom = CN.MaNhom
+               ))
+            ORDER BY lh.ThoiGian DESC
+        ) l
         WHERE NOT EXISTS (
             SELECT 1 FROM PHIEUDATCOC pdc WHERE pdc.MaPhieuYC = pyc.MaPhieuYC
         )
-        ORDER BY l.ThoiGian DESC
+        ORDER BY ThoiGianHen DESC, pyc.MaPhieuYC DESC
     `);
     return result.recordset;
 };

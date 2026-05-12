@@ -8,7 +8,8 @@ const {
     ThemPYC,
     ThemNhom,
     ThemCTNhom,
-    LayThongTinKH
+    LayThongTinKH,
+    registerGroupFlow
 } = require('../models/customerModel');
 
 router.get('/list', async (req, res) => {
@@ -67,25 +68,9 @@ router.get('/check-cccd/:cccd', async (req, res) => {
 
 router.post('/register-group-flow', async (req, res) => {
     try {
-        // 1. Tạo Khách đại diện
-        const maKHDaiDien = await ThemKH(req.body.daiDienInfo);
-        
-        // 2. Tạo Nhóm thuê (Lấy mã đại diện)
-        const maNhom = await ThemNhom(maKHDaiDien);
-
-        // 3. Lặp qua mảng khách phụ để tạo KH và nhét vào Nhóm
-        if (req.body.khachPhuList && req.body.khachPhuList.length > 0) {
-            for (let khPhu of req.body.khachPhuList) {
-                const maKHPhu = await ThemKH(khPhu); // Tạo khách phụ
-                await ThemCTNhom(maNhom, maKHPhu);   // Nhét vào chi tiết nhóm
-            }
-        }
-
-        // 4. Tạo Phiếu Yêu Cầu (Gắn với khách đại diện)
-        const pycData = { ...req.body.requestInfo, MaKH: maKHDaiDien };
-        const maPYC = await ThemPYC(pycData);
-
-        res.json({ success: true, MaNhom: maNhom, MaPYC: maPYC });
+        const { daiDienInfo, khachPhuList, requestInfo } = req.body;
+        const result = await registerGroupFlow(daiDienInfo, khachPhuList, requestInfo);
+        res.json(result);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

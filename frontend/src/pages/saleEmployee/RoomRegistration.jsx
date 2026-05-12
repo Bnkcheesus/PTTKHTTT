@@ -49,20 +49,34 @@ const RoomRegistration = () => {
         }
     };
 
-    const GoiApiDangKy = async (payload) => {
-        const soLuongKhachPhu = parseInt(payload.SoNguoiDuKien) - 1 || 0;
-        console.log("Số lượng khách phụ:", soLuongKhachPhu);
+    const GoiApiDangKy = async (khachDaiDien, danhSachKhachPhu) => {
+        console.log("1. Dữ liệu Đại diện từ Form:", khachDaiDien);
+        console.log("2. Dữ liệu Khách phụ từ Form:", danhSachKhachPhu);
+
+        const soLuongKhachPhu = parseInt(khachDaiDien.SoNguoiChung) || 0;
         
+        // Trích xuất thông tin khách đại diện thực sự vì dữ liệu từ Modal bị lồng nhau
+        const thongTinDaiDien = khachDaiDien.khachDaiDien || khachDaiDien;
+
+        // Trích xuất dữ liệu khách phụ (đề phòng bị lồng lớp vỏ tương tự khách đại diện)
+        const danhSachKhachPhuSach = (danhSachKhachPhu || []).map(khach => {
+            const keys = Object.keys(khach);
+            if (keys.length === 1 && typeof khach[keys[0]] === 'object') {
+                return khach[keys[0]]; // Gỡ bỏ lớp lồng bên ngoài để lấy cục dữ liệu thực sự
+            }
+            return khach;
+        });
+
         try {
             if (soLuongKhachPhu === 0) {
                 await axios.post('http://localhost:5000/api/customers/register-flow', {
-                    customerInfo: payload.khachDaiDien,
+                    customerInfo: thongTinDaiDien,
                     requestInfo: {
                         SoNguoiDuKien: 1, 
                         KhoangGia: phongDangChon.GiaThuePhong, 
                         ThoiGianDuKien: '12 Tháng',
                         GhiChu: '', 
-                        HinhThucThue: payload.NhuCau,
+                        HinhThucThue: khachDaiDien.NhuCau,
                         MaKV: phongDangChon.MaKV, 
                         MaLoai: phongDangChon.MaLoai, 
                         MaPhong: phongDangChon.MaPhong
@@ -70,14 +84,14 @@ const RoomRegistration = () => {
                 });
             } else {
                 await axios.post('http://localhost:5000/api/customers/register-group-flow', {
-                    daiDienInfo: payload.khachDaiDien,
-                    khachPhuList: [],
+                    daiDienInfo: thongTinDaiDien,
+                    khachPhuList: danhSachKhachPhuSach,
                     requestInfo: {
-                        SoNguoiDuKien: soLuongKhachPhu + 1, 
-                        KhoangGia: phongDangChon.GiaThuePhong, 
+                        SoNguoiDuKien: 1, 
+                        KhoangGia: phongDangChon.GiaThuePhong, // Có thể chia đều giá nếu cần: phongDangChon.GiaThuePhong / (soLuongKhachPhu + 1)
                         ThoiGianDuKien: '12 Tháng',
                         GhiChu: '', 
-                        HinhThucThue: payload.NhuCau,
+                        HinhThucThue: khachDaiDien.NhuCau,
                         MaKV: phongDangChon.MaKV, 
                         MaLoai: phongDangChon.MaLoai, 
                         MaPhong: phongDangChon.MaPhong
